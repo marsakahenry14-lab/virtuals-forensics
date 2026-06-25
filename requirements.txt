@@ -1,2 +1,4 @@
 web3>=7.0.0
 tenacity
+fastapi
+uvicorn[standard]
