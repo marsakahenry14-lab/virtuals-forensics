@@ -264,7 +264,7 @@ def get_structural_observations(db_path: str = "indexer_cache.db") -> dict:
             print(f"Error checking financial stats: {e}")
             
     except Exception as e:
-        print(f"Error in get_security_anomalies: {e}")
+        print(f"Error in get_structural_observations: {e}")
     finally:
         if conn:
             conn.close()
