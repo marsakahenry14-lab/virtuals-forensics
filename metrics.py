@@ -32,7 +32,12 @@ def get_event_funnel(db_path: str = "indexer_cache.db") -> dict:
     return result
 
 
-def get_top_cartels(db_path: str = "indexer_cache.db") -> list:
+def get_top_client_provider_pairs(db_path: str = "indexer_cache.db") -> list:
+    """
+    Returns the top 10 client-provider address pairs by number of jobs created.
+    Each entry includes the number of jobs created and the number completed.
+    This is a concentration metric, not a behavioral judgment.
+    """
     conn = None
     try:
         conn = sqlite3.connect(db_path)
@@ -185,7 +190,16 @@ def get_evaluator_behavior(db_path: str = "indexer_cache.db") -> list:
             conn.close()
 
 
-def get_security_anomalies(db_path: str = "indexer_cache.db") -> dict:
+def get_structural_observations(db_path: str = "indexer_cache.db") -> dict:
+    """
+    Returns structural protocol usage metrics:
+    - zero_evaluator_jobs: count of JobCreated with evaluator = 0x000...000
+    - zero_evaluator_percentage: percentage of total jobs
+    - unique_self_evaluators: unique client addresses where client == evaluator (non-zero)
+    - self_eval_jobs: total jobs with client == evaluator (non-zero)
+    - total_usdc_volume: total PaymentReleased amounts divided by 1e6 (assumes USDC 6 decimals)
+    - self_eval_usdc_volume: same, filtered to jobs where client == evaluator
+    """
     result = {
         "zero_evaluator_jobs": 0,
         "zero_evaluator_percentage": 0.0,

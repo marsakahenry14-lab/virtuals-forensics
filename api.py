@@ -8,10 +8,10 @@ app = FastAPI(title="ACP Trust & Flow Analyzer", version="0.1.0")
 def get_all_metrics(db_path: str = Query(default="indexer_cache.db")):
     return {
         "funnel": metrics.get_event_funnel(db_path),
-        "top_cartels": metrics.get_top_cartels(db_path),
+        "top_pairs": metrics.get_top_client_provider_pairs(db_path),
         "empty_deliverables": metrics.get_empty_deliverables(db_path),
         "evaluator_behavior": metrics.get_evaluator_behavior(db_path),
-        "security_anomalies": metrics.get_security_anomalies(db_path),
+        "structural_observations": metrics.get_structural_observations(db_path),
     }
 
 

@@ -2,3 +2,6 @@
 pycache/
 *.db
 .DS_Store
+repomix-output.xml
+.env
+
