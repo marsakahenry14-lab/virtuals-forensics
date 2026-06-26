@@ -11,6 +11,7 @@ def get_all_metrics(db_path: str = Query(default="indexer_cache.db")):
         "top_cartels": metrics.get_top_cartels(db_path),
         "empty_deliverables": metrics.get_empty_deliverables(db_path),
         "evaluator_behavior": metrics.get_evaluator_behavior(db_path),
+        "security_anomalies": metrics.get_security_anomalies(db_path),
     }
 
 

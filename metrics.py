@@ -183,3 +183,76 @@ def get_evaluator_behavior(db_path: str = "indexer_cache.db") -> list:
     finally:
         if conn:
             conn.close()
+
+
+def get_security_anomalies(db_path: str = "indexer_cache.db") -> dict:
+    result = {
+        "zero_evaluator_jobs": 0,
+        "zero_evaluator_percentage": 0.0,
+        "unique_self_evaluators": 0,
+        "self_eval_jobs": 0,
+        "total_usdc_volume": 0.0,
+        "self_eval_usdc_volume": 0.0
+    }
+    conn = None
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        # 1. Zero Evaluator
+        cursor.execute("SELECT COUNT(*) FROM JobCreated")
+        total_jobs_row = cursor.fetchone()
+        total_jobs = total_jobs_row[0] if total_jobs_row else 0
+        
+        cursor.execute("SELECT COUNT(*) FROM JobCreated WHERE evaluator = '0x0000000000000000000000000000000000000000'")
+        zero_eval_row = cursor.fetchone()
+        zero_eval_jobs = zero_eval_row[0] if zero_eval_row else 0
+        
+        result["zero_evaluator_jobs"] = zero_eval_jobs
+        if total_jobs > 0:
+            result["zero_evaluator_percentage"] = round((zero_eval_jobs / total_jobs) * 100, 2)
+            
+        # 2. Self Evaluators
+        query_self_eval = """
+            SELECT COUNT(DISTINCT client), COUNT(*)
+            FROM JobCreated
+            WHERE client = evaluator
+            AND evaluator != '0x0000000000000000000000000000000000000000'
+        """
+        cursor.execute(query_self_eval)
+        se_row = cursor.fetchone()
+        if se_row:
+            result["unique_self_evaluators"] = se_row[0]
+            result["self_eval_jobs"] = se_row[1]
+            
+        # 3. Financial Statistics (USDC volume)
+        try:
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='PaymentReleased'")
+            if cursor.fetchone():
+                # Total volume
+                cursor.execute("SELECT SUM(CAST(amount AS REAL)) / 1e6 FROM PaymentReleased")
+                tot_vol_row = cursor.fetchone()
+                if tot_vol_row and tot_vol_row[0]:
+                    result["total_usdc_volume"] = round(tot_vol_row[0], 2)
+                    
+                # Self-eval volume
+                query_se_vol = """
+                    SELECT SUM(CAST(pr.amount AS REAL)) / 1e6
+                    FROM PaymentReleased pr
+                    JOIN JobCreated jc ON pr.job_id = jc.job_id
+                    WHERE jc.client = jc.evaluator
+                """
+                cursor.execute(query_se_vol)
+                se_vol_row = cursor.fetchone()
+                if se_vol_row and se_vol_row[0]:
+                    result["self_eval_usdc_volume"] = round(se_vol_row[0], 2)
+        except Exception as e:
+            print(f"Error checking financial stats: {e}")
+            
+    except Exception as e:
+        print(f"Error in get_security_anomalies: {e}")
+    finally:
+        if conn:
+            conn.close()
+            
+    return result
