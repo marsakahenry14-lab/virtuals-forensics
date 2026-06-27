@@ -123,9 +123,9 @@ END_BLOCK=47718785
   "structural_observations": {
     "zero_evaluator_jobs": 45644,
     "zero_evaluator_percentage": 72.5,
-    "unique_self_evaluators": 129,
+    "unique_self_evaluators": 212,
     "self_eval_jobs": 17299,
-    "total_usdc_volume": 625.0,
+    "total_usdc_volume": 353.21,
     "self_eval_usdc_volume": 268.71
   }
 }
