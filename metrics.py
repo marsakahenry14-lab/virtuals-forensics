@@ -1,4 +1,5 @@
 import sqlite3
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
 
 def get_event_funnel(db_path: str = "indexer_cache.db") -> dict:
@@ -138,8 +139,8 @@ def get_evaluator_behavior(db_path: str = "indexer_cache.db") -> list:
                 COUNT(DISTINCT rej.job_id) as rejected,
                 COUNT(DISTINCT CASE WHEN s.deliverable = ? THEN comp.job_id END) as empty_approved
             FROM JobCreated jc
-            LEFT JOIN JobCompleted comp ON jc.job_id = comp.job_id
-            LEFT JOIN JobRejected rej ON jc.job_id = rej.job_id
+            LEFT JOIN JobCompleted comp ON jc.job_id = comp.job_id AND comp.evaluator = jc.evaluator
+            LEFT JOIN JobRejected rej ON jc.job_id = rej.job_id AND rej.rejector = jc.evaluator
             LEFT JOIN JobSubmitted s ON jc.job_id = s.job_id
             GROUP BY jc.evaluator
             HAVING total_evaluated >= 3
@@ -156,7 +157,7 @@ def get_evaluator_behavior(db_path: str = "indexer_cache.db") -> list:
                 0 as rejected,
                 COUNT(DISTINCT CASE WHEN s.deliverable = ? THEN comp.job_id END) as empty_approved
             FROM JobCreated jc
-            LEFT JOIN JobCompleted comp ON jc.job_id = comp.job_id
+            LEFT JOIN JobCompleted comp ON jc.job_id = comp.job_id AND comp.evaluator = jc.evaluator
             LEFT JOIN JobSubmitted s ON jc.job_id = s.job_id
             GROUP BY jc.evaluator
             HAVING total_evaluated >= 3
@@ -205,8 +206,8 @@ def get_structural_observations(db_path: str = "indexer_cache.db") -> dict:
         "zero_evaluator_percentage": 0.0,
         "unique_self_evaluators": 0,
         "self_eval_jobs": 0,
-        "total_usdc_volume": 0.0,
-        "self_eval_usdc_volume": 0.0
+        "total_usdc_volume": "0.00",
+        "self_eval_usdc_volume": "0.00"
     }
     conn = None
     try:
@@ -243,23 +244,39 @@ def get_structural_observations(db_path: str = "indexer_cache.db") -> dict:
         try:
             cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='PaymentReleased'")
             if cursor.fetchone():
-                # Total volume
-                cursor.execute("SELECT SUM(CAST(amount AS REAL)) / 1e6 FROM PaymentReleased")
-                tot_vol_row = cursor.fetchone()
-                if tot_vol_row and tot_vol_row[0]:
-                    result["total_usdc_volume"] = round(tot_vol_row[0], 2)
-                    
-                # Self-eval volume
-                query_se_vol = """
-                    SELECT SUM(CAST(pr.amount AS REAL)) / 1e6
+                divisor = Decimal("1000000")
+
+                cursor.execute("SELECT amount FROM PaymentReleased")
+                total_amount = Decimal(0)
+                for (amount_str,) in cursor.fetchall():
+                    if not amount_str:
+                        continue
+                    try:
+                        total_amount += Decimal(str(amount_str))
+                    except (InvalidOperation, ValueError, TypeError):
+                        continue
+
+                total_vol = (total_amount / divisor).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                result["total_usdc_volume"] = format(total_vol, "f")
+
+                query_se_amounts = """
+                    SELECT pr.amount
                     FROM PaymentReleased pr
                     JOIN JobCreated jc ON pr.job_id = jc.job_id
                     WHERE jc.client = jc.evaluator
                 """
-                cursor.execute(query_se_vol)
-                se_vol_row = cursor.fetchone()
-                if se_vol_row and se_vol_row[0]:
-                    result["self_eval_usdc_volume"] = round(se_vol_row[0], 2)
+                cursor.execute(query_se_amounts)
+                self_amount = Decimal(0)
+                for (amount_str,) in cursor.fetchall():
+                    if not amount_str:
+                        continue
+                    try:
+                        self_amount += Decimal(str(amount_str))
+                    except (InvalidOperation, ValueError, TypeError):
+                        continue
+
+                self_vol = (self_amount / divisor).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                result["self_eval_usdc_volume"] = format(self_vol, "f")
         except Exception as e:
             print(f"Error checking financial stats: {e}")
             

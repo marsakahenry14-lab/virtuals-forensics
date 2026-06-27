@@ -64,6 +64,23 @@ curl http://localhost:8000/api/v1/metrics | python3 -m json.tool
 
 Interactive API docs available at `http://localhost:8000/docs`.
 
+## Interactive Queries
+
+Use `query.py` for ad-hoc SQL without quoting hell:
+
+```bash
+# Count jobs
+python query.py "SELECT COUNT(*) FROM JobCreated"
+
+# Top clients
+python query.py "SELECT client, COUNT(*) as cnt FROM JobCreated GROUP BY client ORDER BY cnt DESC LIMIT 5"
+
+# List all tables
+python query.py
+```
+
+Works on Windows PowerShell, CMD, Linux, Mac — no quoting issues.
+
 ---
 
 ## Environment

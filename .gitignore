@@ -1,7 +1,10 @@
 .venv/
-pycache/
+__pycache__/
 *.db
+*.db-wal
+*.db-shm
 .DS_Store
 repomix-output.xml
 .env
-
+*.pyc
+*.log

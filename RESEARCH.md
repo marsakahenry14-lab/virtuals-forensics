@@ -162,7 +162,7 @@ WHERE client = evaluator
   AND evaluator != '0x0000000000000000000000000000000000000000';
 ```
 
-**Observed:** 129 unique addresses where `client == evaluator` (non-zero).
+**Observed:** 212 unique addresses where `client == evaluator` (non-zero).
 
 ```sql
 -- Top client-evaluator pairs by volume
@@ -193,7 +193,7 @@ The same address is also the `evaluator` on `JobCompleted` events for those jobs
 
 | Statement | Classification |
 |---|---|
-| 129 addresses where `client == evaluator` (non-zero) | **Observed** (SQL) |
+| 212 addresses where `client == evaluator` (non-zero) | **Observed** (SQL) |
 | `0xd77443...` is client and evaluator on the same jobs | **Observed** (SQL) |
 | 226/237 completions by `0xd77443...` used `keccak256("")` deliverable | **Observed** (SQL + join) |
 | This represents intentional self-dealing | **Out of scope** — intent unknown |
@@ -320,7 +320,7 @@ SELECT SUM(CAST(amount AS REAL)) / 1e6 as total_usdc
 FROM PaymentReleased;
 ```
 
-**Observed:** ~$625 USDC across 8,859 payment events.
+**Observed:** ~$353.21 USDC across 8,859 payment events.
 
 ```sql
 -- Payments released on jobs where client == evaluator
@@ -343,7 +343,7 @@ ERC-8183 states that evaluator trust must be solved per-implementation. This dat
 **Pattern A — Zero evaluator (72.5% of jobs in this dataset):**  
 No independent review occurs. A single `require(evaluator != address(0))` at job creation eliminates this pattern.
 
-**Pattern B — Client-as-evaluator (129 addresses in this dataset):**  
+**Pattern B — Client-as-evaluator (212 addresses in this dataset):**  
 No independent review occurs. A single `require(evaluator != client)` at job creation eliminates this pattern.
 
 Neither constraint exists in the current production contract.

@@ -22,7 +22,7 @@ PROXY_ADDRESS = "0x238E541BfefD82238730D00a2208E5497F1832E0"
 START_BLOCK = 44427013
 
 DB_PATH = "indexer_cache.db"
-BATCH_SIZE = 50000
+BATCH_SIZE = 10000
 SLEEP_BETWEEN_BATCHES_S = 0.05
 
 EIP1967_IMPLEMENTATION_SLOT = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc"
@@ -73,6 +73,16 @@ UNIFIED_ABI: List[Dict[str, Any]] = [
             {"indexed": False, "internalType": "bytes32", "name": "reason", "type": "bytes32"},
         ],
         "name": "JobCompleted",
+        "type": "event",
+    },
+    {
+        "anonymous": False,
+        "inputs": [
+            {"indexed": True, "internalType": "uint256", "name": "jobId", "type": "uint256"},
+            {"indexed": True, "internalType": "address", "name": "rejector", "type": "address"},
+            {"indexed": False, "internalType": "bytes32", "name": "reason", "type": "bytes32"},
+        ],
+        "name": "JobRejected",
         "type": "event",
     },
     {
@@ -232,6 +242,7 @@ class BaseEventIndexer:
             "JobFunded": ["tx_hash", "log_index", "block_number", "tx_index", "job_id", "client", "amount"],
             "JobSubmitted": ["tx_hash", "log_index", "block_number", "tx_index", "job_id", "provider", "deliverable"],
             "JobCompleted": ["tx_hash", "log_index", "block_number", "tx_index", "job_id", "evaluator", "reason"],
+            "JobRejected": ["tx_hash", "log_index", "block_number", "tx_index", "job_id", "rejector", "reason"],
             "JobExpired": ["tx_hash", "log_index", "block_number", "tx_index", "job_id"],
             "PaymentReleased": ["tx_hash", "log_index", "block_number", "tx_index", "job_id", "provider", "amount"],
             "EvaluatorFeePaid": ["tx_hash", "log_index", "block_number", "tx_index", "job_id", "evaluator", "amount"],
@@ -335,6 +346,20 @@ class BaseEventIndexer:
             )
             cursor.execute(
                 """
+                CREATE TABLE IF NOT EXISTS JobRejected (
+                    tx_hash TEXT NOT NULL,
+                    log_index INTEGER NOT NULL,
+                    block_number INTEGER NOT NULL,
+                    tx_index INTEGER NOT NULL,
+                    job_id TEXT NOT NULL,
+                    rejector TEXT NOT NULL,
+                    reason TEXT NOT NULL,
+                    PRIMARY KEY (tx_hash, log_index)
+                )
+                """
+            )
+            cursor.execute(
+                """
                 CREATE TABLE IF NOT EXISTS JobExpired (
                     tx_hash TEXT NOT NULL,
                     log_index INTEGER NOT NULL,
@@ -417,6 +442,40 @@ class BaseEventIndexer:
                 )
                 """
             )
+
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_JobCreated_job_id ON JobCreated(job_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_JobCreated_client ON JobCreated(client)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_JobCreated_provider ON JobCreated(provider)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_JobCreated_evaluator ON JobCreated(evaluator)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_JobCreated_client_provider ON JobCreated(client, provider)")
+
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_JobFunded_job_id ON JobFunded(job_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_JobFunded_client ON JobFunded(client)")
+
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_JobSubmitted_job_id ON JobSubmitted(job_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_JobSubmitted_provider ON JobSubmitted(provider)")
+
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_JobCompleted_job_id ON JobCompleted(job_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_JobCompleted_evaluator ON JobCompleted(evaluator)")
+
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_JobRejected_job_id ON JobRejected(job_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_JobRejected_rejector ON JobRejected(rejector)")
+
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_JobExpired_job_id ON JobExpired(job_id)")
+
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_PaymentReleased_job_id ON PaymentReleased(job_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_PaymentReleased_provider ON PaymentReleased(provider)")
+
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_EvaluatorFeePaid_job_id ON EvaluatorFeePaid(job_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_EvaluatorFeePaid_evaluator ON EvaluatorFeePaid(evaluator)")
+
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_NewMemo_job_id ON NewMemo(job_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_NewMemo_sender ON NewMemo(sender)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_NewMemo_memo_id ON NewMemo(memo_id)")
+
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_MemoSigned_memo_id ON MemoSigned(memo_id)")
+
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_JobPhaseUpdated_job_id ON JobPhaseUpdated(job_id)")
 
             conn.commit()
 
@@ -556,6 +615,23 @@ class BaseEventIndexer:
                             _to_hex(args["reason"]),
                         ),
                     )
+                elif event_name == "JobRejected":
+                    cursor.execute(
+                        """
+                        INSERT OR IGNORE INTO JobRejected
+                        (tx_hash, log_index, block_number, tx_index, job_id, rejector, reason)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            tx_hash,
+                            log_index,
+                            block_number,
+                            tx_index,
+                            _to_uint_str(args["jobId"]),
+                            _to_checksum_address(args["rejector"]),
+                            _to_hex(args["reason"]),
+                        ),
+                    )
                 elif event_name == "JobExpired":
                     cursor.execute(
                         """
@@ -665,25 +741,32 @@ class BaseEventIndexer:
 
         return rows_written
 
-    def run(self, batch_size: int = BATCH_SIZE, sleep_s: float = SLEEP_BETWEEN_BATCHES_S) -> None:
+    def run(
+        self,
+        batch_size: int = BATCH_SIZE,
+        sleep_s: float = SLEEP_BETWEEN_BATCHES_S,
+        end_block: Optional[int] = None,
+    ) -> None:
         batch_size = int(batch_size)
         if batch_size <= 0:
             raise ValueError("--batch-size must be a positive integer")
 
         latest_block = int(self.w3.eth.block_number)
+        target_block = min(int(end_block), latest_block) if end_block else latest_block
         from_block = self._get_resume_block()
 
-        if from_block > latest_block:
-            logger.info(f"Nothing to index. from_block={from_block} latest_block={latest_block}")
+        if from_block > target_block:
+            logger.info(f"Nothing to index. from_block={from_block} target_block={target_block} latest_block={latest_block}")
             return
 
-        logger.info(f"Indexing {from_block}..{latest_block}")
+        logger.info(f"Indexing {from_block}..{target_block}")
 
         events = [
             "JobCreated",
             "JobFunded",
             "JobSubmitted",
             "JobCompleted",
+            "JobRejected",
             "JobExpired",
             "PaymentReleased",
             "EvaluatorFeePaid",
@@ -693,8 +776,8 @@ class BaseEventIndexer:
         ]
 
         batch_start = from_block
-        while batch_start <= latest_block:
-            batch_end = min(batch_start + batch_size - 1, latest_block)
+        while batch_start <= target_block:
+            batch_end = min(batch_start + batch_size - 1, target_block)
             logger.info(f"Batch {batch_start}..{batch_end}")
 
             for event_name in events:
@@ -717,6 +800,7 @@ if __name__ == "__main__":
     parser.add_argument("--db", default=DB_PATH)
     parser.add_argument("--batch-size", type=int, default=BATCH_SIZE)
     parser.add_argument("--sleep", type=float, default=SLEEP_BETWEEN_BATCHES_S)
+    parser.add_argument("--end-block", type=int, default=None)
     parser.add_argument("--reset-db", action="store_true")
     args = parser.parse_args()
 
@@ -724,4 +808,4 @@ if __name__ == "__main__":
         os.remove(args.db)
 
     indexer = BaseEventIndexer(args.rpc_url, args.proxy, args.db)
-    indexer.run(batch_size=args.batch_size, sleep_s=args.sleep)
+    indexer.run(batch_size=args.batch_size, sleep_s=args.sleep, end_block=args.end_block)

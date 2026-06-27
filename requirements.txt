@@ -1,4 +1,5 @@
 web3>=7.0.0
 tenacity
+requests
 fastapi
 uvicorn[standard]
