@@ -5,9 +5,12 @@ import logging
 from typing import Any, Dict, List, Optional, Tuple
 import argparse
 
+from dotenv import load_dotenv
 from requests.exceptions import RequestException
 from tenacity import retry, wait_exponential, stop_after_attempt, retry_if_exception
 from web3 import Web3
+
+load_dotenv()
 
 try:
     from web3.middleware.proof_of_authority import ExtraDataToPOAMiddleware as _poa_middleware
@@ -17,9 +20,9 @@ except ImportError:
     except ImportError:
         from web3.middleware import geth_poa_middleware as _poa_middleware
 
-RPC_URL = "https://mainnet.base.org"
+DEFAULT_RPC_URL = "https://mainnet.base.org"
 PROXY_ADDRESS = "0x238E541BfefD82238730D00a2208E5497F1832E0"
-START_BLOCK = 44427013
+DEFAULT_START_BLOCK = 44427013
 
 DB_PATH = "indexer_cache.db"
 BATCH_SIZE = 10000
@@ -30,6 +33,20 @@ EIP1967_IMPLEMENTATION_SLOT_INT = int(EIP1967_IMPLEMENTATION_SLOT, 16)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
+
+EVENT_TABLES = [
+    "JobCreated",
+    "JobFunded",
+    "JobSubmitted",
+    "JobCompleted",
+    "JobRejected",
+    "JobExpired",
+    "PaymentReleased",
+    "EvaluatorFeePaid",
+    "NewMemo",
+    "MemoSigned",
+    "JobPhaseUpdated",
+]
 
 UNIFIED_ABI: List[Dict[str, Any]] = [
     {
@@ -172,10 +189,11 @@ def _to_uint_str(value: Any) -> str:
 
 
 def _is_rate_limit_or_timeout(exc: BaseException) -> bool:
+    msg = _extract_error_text(exc)
+
     if isinstance(exc, (RequestException, TimeoutError, ConnectionError)):
         return True
 
-    msg = str(exc).lower()
     if "429" in msg:
         return True
     if "rate limit" in msg or ("rate" in msg and "limit" in msg):
@@ -202,13 +220,72 @@ def _is_rate_limit_or_timeout(exc: BaseException) -> bool:
     return False
 
 
-def _is_payload_too_large(exc: BaseException) -> bool:
-    msg = str(exc).lower()
-    return "413" in msg or "payload too large" in msg
+def _extract_error_text(exc: BaseException) -> str:
+    parts = [str(exc).lower()]
+
+    if isinstance(exc, ValueError) and exc.args:
+        payload = exc.args[0]
+        if isinstance(payload, dict):
+            code = payload.get("code")
+            message = payload.get("message", "")
+            data = payload.get("data", "")
+            if code is not None:
+                parts.append(str(code).lower())
+            if message:
+                parts.append(str(message).lower())
+            if data:
+                parts.append(str(data).lower())
+
+    return " | ".join(part for part in parts if part)
+
+
+def _should_split_range(exc: BaseException) -> bool:
+    msg = _extract_error_text(exc)
+    markers = (
+        "413",
+        "payload too large",
+        "more than",
+        "limit exceeded",
+        "range is too large",
+        "query returned more than",
+        "-32005",
+        "timeout",
+        "timed out",
+        "connection reset",
+        "connection aborted",
+        "connection closed",
+    )
+    return any(marker in msg for marker in markers)
+
+
+def _parse_optional_int_env(name: str) -> Optional[int]:
+    raw_value = os.getenv(name)
+    if raw_value is None or raw_value == "":
+        return None
+    try:
+        return int(raw_value)
+    except ValueError as exc:
+        raise SystemExit(f"Environment variable {name} must be an integer, got {raw_value!r}.") from exc
+
+
+def _resolve_optional_int(cli_value: Optional[int], env_name: str, default: Optional[int]) -> Optional[int]:
+    if cli_value is not None:
+        return cli_value
+    env_value = _parse_optional_int_env(env_name)
+    if env_value is not None:
+        return env_value
+    return default
 
 
 class BaseEventIndexer:
-    def __init__(self, rpc_url: str, proxy_address: str, db_path: str):
+    def __init__(
+        self,
+        rpc_url: str,
+        proxy_address: str,
+        db_path: str,
+        start_block: int,
+        expected_jobcreated: Optional[int] = None,
+    ):
         self.w3 = Web3(Web3.HTTPProvider(rpc_url, request_kwargs={"timeout": 45}))
         self.w3.middleware_onion.inject(_poa_middleware, layer=0)
 
@@ -218,6 +295,8 @@ class BaseEventIndexer:
         self.proxy_address = Web3.to_checksum_address(proxy_address)
         self.contract = self.w3.eth.contract(address=self.proxy_address, abi=UNIFIED_ABI)
         self.db_path = db_path
+        self.start_block = int(start_block)
+        self.expected_jobcreated = expected_jobcreated
 
         self._init_db()
         self._validate_db_schema()
@@ -266,7 +345,8 @@ class BaseEventIndexer:
             details = "; ".join([f"{t}: missing {cols}" for t, cols in missing.items()])
             raise RuntimeError(
                 "SQLite schema mismatch detected for indexer_cache.db. "
-                "Delete the DB file or run with --reset-db to recreate tables. "
+                "This indexer will not modify the existing DB schema. "
+                "Create a manual copy of the database if you need to inspect or rebuild it safely. "
                 f"Details: {details}"
             )
 
@@ -490,10 +570,10 @@ class BaseEventIndexer:
             cursor.execute("SELECT last_block FROM sync_progress WHERE id = 1")
             row = cursor.fetchone()
             if not row:
-                return START_BLOCK
+                return self.start_block
             last_block = int(row[0])
-            if last_block < START_BLOCK:
-                return START_BLOCK
+            if last_block < self.start_block:
+                return self.start_block
             return last_block + 1
 
     def _set_last_processed_block(self, block_number: int) -> None:
@@ -519,15 +599,122 @@ class BaseEventIndexer:
         try:
             return self._fetch_event_logs(event_name, from_block, to_block)
         except Exception as e:
-            if not _is_payload_too_large(e):
+            if not _should_split_range(e):
                 raise
+            if from_block >= to_block:
+                raise RuntimeError(
+                    f"RPC failed even after recursive fallback for {event_name} at single block {from_block}: {e}"
+                ) from e
+            logger.warning(f"Splitting {event_name} range {from_block}..{to_block} after RPC error: {e}")
 
         mid = (from_block + to_block) // 2
-        if mid < from_block or mid >= to_block:
-            raise
         left = self._fetch_with_payload_fallback(event_name, from_block, mid)
         right = self._fetch_with_payload_fallback(event_name, mid + 1, to_block)
         return left + right
+
+    def _event_count_and_block_span(self, cursor: sqlite3.Cursor, table_name: str) -> Tuple[int, Optional[int], Optional[int]]:
+        cursor.execute(f"SELECT COUNT(*), MIN(block_number), MAX(block_number) FROM {table_name}")
+        count, min_block, max_block = cursor.fetchone()
+        return int(count or 0), min_block, max_block
+
+    def _find_range_gaps(
+        self,
+        expected_from_block: int,
+        expected_to_block: int,
+        processed_ranges: List[Tuple[int, int]],
+    ) -> List[Tuple[int, int]]:
+        if not processed_ranges:
+            return []
+
+        normalized = sorted(processed_ranges)
+        gaps: List[Tuple[int, int]] = []
+        cursor_block = expected_from_block
+        for start, end in normalized:
+            if start > cursor_block:
+                gaps.append((cursor_block, start - 1))
+            cursor_block = max(cursor_block, end + 1)
+        if cursor_block <= expected_to_block:
+            gaps.append((cursor_block, expected_to_block))
+        return gaps
+
+    def _count_duplicate_tx_log_pairs(self, cursor: sqlite3.Cursor) -> int:
+        duplicate_query = """
+        SELECT COUNT(*) FROM (
+            SELECT tx_hash, log_index
+            FROM (
+                SELECT tx_hash, log_index FROM JobCreated
+                UNION ALL SELECT tx_hash, log_index FROM JobFunded
+                UNION ALL SELECT tx_hash, log_index FROM JobSubmitted
+                UNION ALL SELECT tx_hash, log_index FROM JobCompleted
+                UNION ALL SELECT tx_hash, log_index FROM JobRejected
+                UNION ALL SELECT tx_hash, log_index FROM JobExpired
+                UNION ALL SELECT tx_hash, log_index FROM PaymentReleased
+                UNION ALL SELECT tx_hash, log_index FROM EvaluatorFeePaid
+                UNION ALL SELECT tx_hash, log_index FROM NewMemo
+                UNION ALL SELECT tx_hash, log_index FROM MemoSigned
+                UNION ALL SELECT tx_hash, log_index FROM JobPhaseUpdated
+            )
+            GROUP BY tx_hash, log_index
+            HAVING COUNT(*) > 1
+        )
+        """
+        cursor.execute(duplicate_query)
+        row = cursor.fetchone()
+        return int(row[0] or 0)
+
+    def _print_integrity_report(
+        self,
+        expected_from_block: Optional[int],
+        expected_to_block: Optional[int],
+        processed_ranges: List[Tuple[int, int]],
+    ) -> None:
+        logger.info("=== INTEGRITY REPORT ===")
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            overall_min: Optional[int] = None
+            overall_max: Optional[int] = None
+            for table_name in EVENT_TABLES:
+                count, min_block, max_block = self._event_count_and_block_span(cursor, table_name)
+                logger.info(
+                    f"{table_name}: rows={count}, min_block={min_block if min_block is not None else 'n/a'}, "
+                    f"max_block={max_block if max_block is not None else 'n/a'}"
+                )
+                if min_block is not None:
+                    overall_min = min(min_block, overall_min) if overall_min is not None else min_block
+                if max_block is not None:
+                    overall_max = max(max_block, overall_max) if overall_max is not None else max_block
+
+            logger.info(
+                "overall_block_coverage: min_block=%s, max_block=%s",
+                overall_min if overall_min is not None else "n/a",
+                overall_max if overall_max is not None else "n/a",
+            )
+
+            duplicate_pairs = self._count_duplicate_tx_log_pairs(cursor)
+            logger.info("duplicate_(tx_hash,log_index)_pairs=%s", duplicate_pairs)
+
+            if expected_from_block is not None and expected_to_block is not None and processed_ranges:
+                gaps = self._find_range_gaps(expected_from_block, expected_to_block, processed_ranges)
+                if gaps:
+                    logger.error("processed_block_range_gaps=%s", gaps)
+                else:
+                    logger.info("processed_block_range_gaps=none")
+            else:
+                logger.info("processed_block_range_gaps=not evaluated in this invocation")
+
+    def _assert_expected_jobcreated(self) -> None:
+        if self.expected_jobcreated is None:
+            return
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM JobCreated")
+            actual_count = int(cursor.fetchone()[0] or 0)
+        if actual_count != self.expected_jobcreated:
+            raise RuntimeError(
+                f"EXPECTED_JOBCREATED mismatch: expected {self.expected_jobcreated}, got {actual_count}. "
+                "This usually indicates an incomplete or inconsistent dataset."
+            )
+        logger.info("EXPECTED_JOBCREATED matched: %s", actual_count)
 
     def _save_event_rows(self, event_name: str, logs: List[Any]) -> int:
         if not logs:
@@ -757,55 +944,62 @@ class BaseEventIndexer:
 
         if from_block > target_block:
             logger.info(f"Nothing to index. from_block={from_block} target_block={target_block} latest_block={latest_block}")
+            self._print_integrity_report(None, None, [])
+            self._assert_expected_jobcreated()
             return
 
         logger.info(f"Indexing {from_block}..{target_block}")
-
-        events = [
-            "JobCreated",
-            "JobFunded",
-            "JobSubmitted",
-            "JobCompleted",
-            "JobRejected",
-            "JobExpired",
-            "PaymentReleased",
-            "EvaluatorFeePaid",
-            "NewMemo",
-            "MemoSigned",
-            "JobPhaseUpdated",
-        ]
+        processed_ranges: List[Tuple[int, int]] = []
 
         batch_start = from_block
         while batch_start <= target_block:
             batch_end = min(batch_start + batch_size - 1, target_block)
             logger.info(f"Batch {batch_start}..{batch_end}")
 
-            for event_name in events:
+            for event_name in EVENT_TABLES:
                 logs = self._fetch_with_payload_fallback(event_name, batch_start, batch_end)
                 if logs:
                     written = self._save_event_rows(event_name, logs)
                     logger.info(f"{event_name}: {len(logs)} logs, {written} inserted")
 
             self._set_last_processed_block(batch_end)
+            processed_ranges.append((batch_start, batch_end))
             time.sleep(float(sleep_s))
             batch_start = batch_end + 1
 
         logger.info("Indexing complete.")
+        self._print_integrity_report(from_block, target_block, processed_ranges)
+        self._assert_expected_jobcreated()
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--rpc-url", default=RPC_URL)
+    parser.add_argument("--rpc-url", default=None)
     parser.add_argument("--proxy", default=PROXY_ADDRESS)
     parser.add_argument("--db", default=DB_PATH)
+    parser.add_argument("--start-block", type=int, default=None)
     parser.add_argument("--batch-size", type=int, default=BATCH_SIZE)
     parser.add_argument("--sleep", type=float, default=SLEEP_BETWEEN_BATCHES_S)
     parser.add_argument("--end-block", type=int, default=None)
-    parser.add_argument("--reset-db", action="store_true")
+    parser.add_argument("--unbounded", action="store_true")
     args = parser.parse_args()
 
-    if args.reset_db and os.path.exists(args.db):
-        os.remove(args.db)
+    rpc_url = args.rpc_url or os.getenv("BASE_RPC_URL") or DEFAULT_RPC_URL
+    start_block = _resolve_optional_int(args.start_block, "START_BLOCK", DEFAULT_START_BLOCK)
+    end_block = _resolve_optional_int(args.end_block, "END_BLOCK", None)
+    expected_jobcreated = _resolve_optional_int(None, "EXPECTED_JOBCREATED", None)
 
-    indexer = BaseEventIndexer(args.rpc_url, args.proxy, args.db)
-    indexer.run(batch_size=args.batch_size, sleep_s=args.sleep, end_block=args.end_block)
+    if end_block is None and not args.unbounded:
+        raise SystemExit(
+            "REFUSING TO RUN AN UNBOUNDED INDEX.\n"
+            "Set END_BLOCK in .env, pass --end-block explicitly, or use --unbounded if you intentionally want a moving target."
+        )
+
+    indexer = BaseEventIndexer(
+        rpc_url=rpc_url,
+        proxy_address=args.proxy,
+        db_path=args.db,
+        start_block=start_block,
+        expected_jobcreated=expected_jobcreated,
+    )
+    indexer.run(batch_size=args.batch_size, sleep_s=args.sleep, end_block=end_block)
