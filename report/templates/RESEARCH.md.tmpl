@@ -1,9 +1,9 @@
 # ACP Mainnet Dataset — Reproducible Research
 
-**Contract:** AgenticCommerceV3 · `0x238E541BfefD82238730D00a2208E5497F1832E0`  
-**Chain:** Base Mainnet (chain id 8453)  
-**Indexed range (pinned):** 44,427,013 - 47,718,785; **observed event span:** 44,429,969 - 47,715,550
-**Dataset:** 62,953 JobCreated events + full lifecycle
+**Contract:** {{contract_name}} · `{{contract_address}}`  
+**Chain:** {{chain_name}} (chain id {{chain_id}})  
+**Indexed range (pinned):** {{indexed_block_min}} - {{indexed_block_max}}; **observed event span:** {{observed_event_min}} - {{observed_event_max}}
+**Dataset:** {{jobcreated_rows}} JobCreated events + full lifecycle
 
 > All statements in this document are separated into **Observed** (SQL-verifiable), **Verified** (confirmed on Basescan), **Hypothesis** (plausible explanation, not confirmed), and **Limitation** (known gap in methodology).
 
@@ -28,17 +28,17 @@ not imply intent, fraud, or protocol violation.
 
 ### What was collected
 
-Events indexed from AgenticCommerceV3 using `eth_getLogs` via web3.py:
+Events indexed from {{contract_name}} using `eth_getLogs` via web3.py:
 
 | Table | Rows | Description |
 |---|---|---|
-| JobCreated | 62,953 | job_id, client, provider, evaluator, expired_at, hook |
-| JobFunded | 10,544 | job_id, client, amount |
-| JobSubmitted | 9,333 | job_id, provider, deliverable (bytes32) |
-| JobCompleted | 8,859 | job_id, evaluator, reason |
-| JobRejected | 1,411 | job_id, rejector, reason |
-| JobExpired | 1,130 | job_id |
-| PaymentReleased | 8,859 | job_id, provider, amount |
+| JobCreated | {{jobcreated_rows}} | job_id, client, provider, evaluator, expired_at, hook |
+| JobFunded | {{jobfunded_rows}} | job_id, client, amount |
+| JobSubmitted | {{jobsubmitted_rows}} | job_id, provider, deliverable (bytes32) |
+| JobCompleted | {{jobcompleted_rows}} | job_id, evaluator, reason |
+| JobRejected | {{jobrejected_rows}} | job_id, rejector, reason |
+| JobExpired | {{jobexpired_rows}} | job_id |
+| PaymentReleased | {{paymentreleased_rows}} | job_id, provider, amount |
 
 ### Lifecycle branching (why Rejected + Completed can exceed Submitted)
 
@@ -63,8 +63,8 @@ WHERE s.job_id IS NULL;
 ### Integrity check
 
 ```sql
-SELECT COUNT(*) FROM JobCreated;                -- 62,953
-SELECT COUNT(DISTINCT job_id) FROM JobCreated;  -- 62,953
+SELECT COUNT(*) FROM JobCreated;                -- {{jobcreated_rows}}
+SELECT COUNT(DISTINCT job_id) FROM JobCreated;  -- {{distinct_jobcreated_job_ids}}
 ```
 
 **Observed:** No duplicate `job_id` values. One row per job creation event.
@@ -73,12 +73,12 @@ SELECT COUNT(DISTINCT job_id) FROM JobCreated;  -- 62,953
 
 ```bash
 cp .env.example .env
-# Edit .env: set BASE_RPC_URL, START_BLOCK=44427013, END_BLOCK=47718785
+# Edit .env: set BASE_RPC_URL, START_BLOCK={{indexed_block_min_raw}}, END_BLOCK={{indexed_block_max_raw}}
 python indexer.py
 python generate_report.py
 ```
 
-**Limitation:** Re-running the indexer beyond block 47,718,785 will produce additional rows. All statistics in this document are specific to the pinned block range; the observed event span in this snapshot is 44,429,969 - 47,715,550.
+**Limitation:** Re-running the indexer beyond block {{indexed_block_max}} will produce additional rows. All statistics in this document are specific to the pinned block range; the observed event span in this snapshot is {{observed_event_min}} - {{observed_event_max}}.
 
 ---
 
@@ -95,9 +95,9 @@ FROM JobCreated;
 ```
 
 **Observed:**
-- Zero evaluator jobs: 45,644 (72.50%)
-- Client equals evaluator: 17,299 (27.48%)
-- Independent evaluator jobs: 10 (0.02%)
+- Zero evaluator jobs: {{zero_evaluator_count}} ({{zero_evaluator_pct}}%)
+- Client equals evaluator: {{self_evaluator_nonzero_count}} ({{self_evaluator_nonzero_pct}}%)
+- Independent evaluator jobs: {{independent_evaluator_count}} ({{independent_evaluator_pct}}%)
 
 ### Interpretation
 
@@ -116,7 +116,7 @@ WHERE LOWER(client) = LOWER(evaluator)
   AND LOWER(evaluator) != LOWER('0x0000000000000000000000000000000000000000');
 ```
 
-**Observed:** 212 unique non-zero addresses appear as both `client` and `evaluator`.
+**Observed:** {{unique_self_evaluators}} unique non-zero addresses appear as both `client` and `evaluator`.
 
 ### Top client-provider pair
 
@@ -128,7 +128,7 @@ ORDER BY jobs DESC
 LIMIT 1;
 ```
 
-**Observed:** Top pair `0x22F70dAf4426Fe47D2ef4BE54C3ba7653Be01491 -> 0xD6A5093213d0e940a887ee5327c60aF7e53B0261` appears on 21,937 jobs, with 1,940 completed jobs.
+**Observed:** Top pair `{{top_pair_client}} -> {{top_pair_provider}}` appears on {{top_pair_created_count}} jobs, with {{top_pair_completed_count}} completed jobs.
 
 ---
 
@@ -136,7 +136,7 @@ LIMIT 1;
 
 ### Reference hash
 
-`keccak256("") = 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470`
+`keccak256("") = {{empty_deliverable_hash}}`
 
 ### SQL query
 
@@ -148,13 +148,13 @@ SELECT
 FROM JobSubmitted s
 LEFT JOIN JobCompleted comp ON s.job_id = comp.job_id
 LEFT JOIN JobExpired exp ON s.job_id = exp.job_id
-WHERE LOWER(s.deliverable) = LOWER('0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470');
+WHERE LOWER(s.deliverable) = LOWER('{{empty_deliverable_hash}}');
 ```
 
 **Observed:**
-- Empty deliverables submitted: 398
-- Empty deliverables completed: 392 (98.49%)
-- Empty deliverables expired: 6 (1.51%)
+- Empty deliverables submitted: {{empty_deliverables_total}}
+- Empty deliverables completed: {{empty_deliverables_completed}} ({{empty_deliverables_completed_pct}}%)
+- Empty deliverables expired: {{empty_deliverables_expired}} ({{empty_deliverables_expired_pct}}%)
 
 ---
 
@@ -173,9 +173,9 @@ LIMIT 2;
 ```
 
 **Observed:**
-- Top client one: `0x22F70dAf4426Fe47D2ef4BE54C3ba7653Be01491` with 43,858 jobs (69.67%)
-- Top client two: `0x4e7C9Cec0C188C4f38f089E7843d750b7C3FAB46` with 11,146 jobs (17.71%)
-- Combined top-two share: 87.38%
+- Top client one: `{{top_client_one_address}}` with {{top_client_one_jobs}} jobs ({{top_client_one_pct}}%)
+- Top client two: `{{top_client_two_address}}` with {{top_client_two_jobs}} jobs ({{top_client_two_pct}}%)
+- Combined top-two share: {{top_two_clients_pct}}%
 
 ---
 
@@ -189,9 +189,9 @@ FROM PaymentReleased;
 ```
 
 **Observed:**
-- Total payment volume: 353.21
-- Self-evaluator volume: 268.71
-- Average payment size: 0.04
+- Total payment volume: {{total_usdc_volume}}
+- Self-evaluator volume: {{self_eval_usdc_volume}}
+- Average payment size: {{average_payment_usdc}}
 
 **Limitation:** Amounts are normalized assuming 6 decimals. Confirm token configuration separately if exact denomination matters.
 
@@ -211,4 +211,4 @@ These are structural observations about the on-chain data, not claims about inte
 
 ## Appendix — Basescan Reference
 
-Contract reference: [0x238E541BfefD82238730D00a2208E5497F1832E0](https://basescan.org/address/0x238E541BfefD82238730D00a2208E5497F1832E0)
+Contract reference: [{{contract_address}}]({{basescan_contract_url}})
