@@ -7,6 +7,21 @@
 
 > All statements in this document are separated into **Observed** (SQL-verifiable), **Verified** (confirmed on Basescan), **Hypothesis** (plausible explanation, not confirmed), and **Limitation** (known gap in methodology).
 
+## Key Findings
+
+- **Independent evaluation is effectively absent:** of 62,953 jobs created, only 10 (0.02%)
+  name an evaluator that is neither the zero address nor the client. 45,644 (72.50%) have a
+  zero-address evaluator; 17,299 (27.48%) set client == evaluator.
+- **Extreme concentration:** the single top client→provider pair accounts for 21,937 jobs,
+  and the top client alone created 43,858 (69.67%); the top two clients created 87.38%.
+- **Value flows through self-evaluated jobs:** of $353.21 total released USDC, $268.71 (~76%)
+  went to jobs where client == evaluator.
+- **Funded-but-no-work:** 1,232 jobs were rejected before any deliverable was submitted, and
+  1,130 expired — funds escrowed without a resulting deliverable.
+
+These are structural, SQL-reproducible observations. They describe on-chain behavior and do
+not imply intent, fraud, or protocol violation.
+
 ---
 
 ## 1. Data Collection
@@ -24,6 +39,26 @@ Events indexed from AgenticCommerceV3 using `eth_getLogs` via web3.py:
 | JobRejected | 1,411 | job_id, rejector, reason |
 | JobExpired | 1,130 | job_id |
 | PaymentReleased | 8,859 | job_id, provider, amount |
+
+### Lifecycle branching (why Rejected + Completed can exceed Submitted)
+
+**Observed:** Of 1,411 `JobRejected` events, 1,232 (87.3%) have no prior `JobSubmitted`
+event — these jobs were rejected before any deliverable was submitted. The `JobRejected`
+and `JobCompleted` sets are disjoint (0 overlap). The lifecycle branches at `JobFunded`:
+one path is `Submitted → Completed`, the other is `Rejected` / `Expired`. These are parallel
+paths, not sequential stages, so `Completed + Rejected` is not expected to equal `Submitted`.
+
+Verification queries:
+
+```sql
+-- disjoint: rejected jobs that are also completed (expect 0)
+SELECT COUNT(*) FROM JobRejected r JOIN JobCompleted c ON r.job_id = c.job_id;
+
+-- rejected before any submission (expect 1,232)
+SELECT COUNT(*) FROM JobRejected r
+LEFT JOIN JobSubmitted s ON r.job_id = s.job_id
+WHERE s.job_id IS NULL;
+```
 
 ### Integrity check
 
