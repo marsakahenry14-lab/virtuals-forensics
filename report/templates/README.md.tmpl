@@ -5,7 +5,7 @@ running on {{chain_name}}.
 
 **Contract:** `{{contract_address}}`  
 **Chain:** {{chain_name}} (chain id {{chain_id}})  
-**Indexed block range:** {{indexed_block_min}} - {{indexed_block_max}}  
+**Indexed range (pinned):** {{indexed_block_min}} - {{indexed_block_max}}; **observed event span:** {{observed_event_min}} - {{observed_event_max}}
 **Dataset:** {{jobcreated_rows}} `JobCreated` events + full job lifecycle
 
 No LLM inference. No assumptions. Raw on-chain events, SQL queries, verifiable transaction hashes.
@@ -92,8 +92,8 @@ Copy `.env.example` to `.env` and set your RPC URL:
 
 ```env
 BASE_RPC_URL={{base_public_rpc_url}}
-START_BLOCK={{indexed_block_min}}
-END_BLOCK={{indexed_block_max}}
+START_BLOCK={{indexed_block_min_raw}}
+END_BLOCK={{indexed_block_max_raw}}
 ```
 
 > **Note:** Using a paid RPC endpoint such as {{recommended_rpc_provider}} is strongly recommended.  
@@ -155,7 +155,7 @@ No duplicate `job_id` values. One row per job creation event.
 
 ## Limitations
 
-- **Block range is fixed.** The dataset covers blocks {{indexed_block_min}} - {{indexed_block_max}}. Re-running the indexer today may produce a larger dataset.
+- **Block range is fixed.** The dataset covers pinned blocks {{indexed_block_min}} - {{indexed_block_max}}; observed events in this snapshot span {{observed_event_min}} - {{observed_event_max}}.
 - **Token assumption.** `PaymentReleased.amount` is normalized assuming 6 decimals.
 - **Basescan sample.** On-chain verification remains a sample-based process, documented in `VALIDATION.md`.
 - **Intent is unknown.** No observation in this dataset implies intent, fraud, or protocol violation. All statements are empirical.

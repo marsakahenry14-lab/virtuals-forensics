@@ -2,7 +2,7 @@
 
 **Contract:** AgenticCommerceV3 · `0x238E541BfefD82238730D00a2208E5497F1832E0`  
 **Chain:** Base Mainnet (chain id 8453)  
-**Indexed block range:** 44,429,969 - 47,715,550  
+**Indexed range (pinned):** 44,427,013 - 47,718,785; **observed event span:** 44,429,969 - 47,715,550
 **Dataset:** 62,953 JobCreated events + full lifecycle
 
 > All statements in this document are separated into **Observed** (SQL-verifiable), **Verified** (confirmed on Basescan), **Hypothesis** (plausible explanation, not confirmed), and **Limitation** (known gap in methodology).
@@ -38,12 +38,12 @@ SELECT COUNT(DISTINCT job_id) FROM JobCreated;  -- 62,953
 
 ```bash
 cp .env.example .env
-# Edit .env: set BASE_RPC_URL, START_BLOCK=44,429,969, END_BLOCK=47,715,550
+# Edit .env: set BASE_RPC_URL, START_BLOCK=44427013, END_BLOCK=47718785
 python indexer.py
 python generate_report.py
 ```
 
-**Limitation:** Re-running the indexer beyond block 47,715,550 will produce additional rows. All statistics in this document are specific to the pinned block range.
+**Limitation:** Re-running the indexer beyond block 47,718,785 will produce additional rows. All statistics in this document are specific to the pinned block range; the observed event span in this snapshot is 44,429,969 - 47,715,550.
 
 ---
 

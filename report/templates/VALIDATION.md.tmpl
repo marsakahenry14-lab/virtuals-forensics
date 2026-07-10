@@ -7,8 +7,9 @@
 - **Proxy type:** ERC-1967 upgradeable proxy.
 - **Implementation:** `0x8e86FbEf4a4c927561cb6447cEd77ffFbf3B77BC`
 - **Basescan:** {{basescan_contract_url}}
-- **Block range:** {{indexed_block_min}}-{{indexed_block_max}}. Pinned manually via
-  START_BLOCK/END_BLOCK; the observed event span is reported by the indexer integrity check.
+- **Pinned block range:** {{indexed_block_min}}-{{indexed_block_max}}.
+- **Observed event span:** {{observed_event_min}}-{{observed_event_max}}.
+- Pinned manually via START_BLOCK/END_BLOCK; the observed event span is reported by the indexer integrity check.
 - **ABI source:** Basescan "Contract" tab for the implementation.
 
 ---
@@ -16,7 +17,8 @@
 # VALIDATION — Dataset Integrity & On-Chain Verification
 
 **Contract:** {{contract_name}} · `{{contract_address}}`  
-**Block range:** {{indexed_block_min}} - {{indexed_block_max}}
+**Pinned block range:** {{indexed_block_min}} - {{indexed_block_max}}
+**Observed event span:** {{observed_event_min}} - {{observed_event_max}}
 
 ---
 
@@ -148,4 +150,5 @@ python generate_report.py
 
 - Contract reference: [{{contract_address}}]({{basescan_contract_url}})
 - Chain: {{chain_name}} ({{chain_id}})
-- Indexed block range: {{indexed_block_min}} - {{indexed_block_max}}
+- Indexed block range (pinned): {{indexed_block_min}} - {{indexed_block_max}}
+- Observed event span: {{observed_event_min}} - {{observed_event_max}}

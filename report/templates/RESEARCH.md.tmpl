@@ -2,7 +2,7 @@
 
 **Contract:** {{contract_name}} · `{{contract_address}}`  
 **Chain:** {{chain_name}} (chain id {{chain_id}})  
-**Indexed block range:** {{indexed_block_min}} - {{indexed_block_max}}  
+**Indexed range (pinned):** {{indexed_block_min}} - {{indexed_block_max}}; **observed event span:** {{observed_event_min}} - {{observed_event_max}}
 **Dataset:** {{jobcreated_rows}} JobCreated events + full lifecycle
 
 > All statements in this document are separated into **Observed** (SQL-verifiable), **Verified** (confirmed on Basescan), **Hypothesis** (plausible explanation, not confirmed), and **Limitation** (known gap in methodology).
@@ -38,12 +38,12 @@ SELECT COUNT(DISTINCT job_id) FROM JobCreated;  -- {{distinct_jobcreated_job_ids
 
 ```bash
 cp .env.example .env
-# Edit .env: set BASE_RPC_URL, START_BLOCK={{indexed_block_min}}, END_BLOCK={{indexed_block_max}}
+# Edit .env: set BASE_RPC_URL, START_BLOCK={{indexed_block_min_raw}}, END_BLOCK={{indexed_block_max_raw}}
 python indexer.py
 python generate_report.py
 ```
 
-**Limitation:** Re-running the indexer beyond block {{indexed_block_max}} will produce additional rows. All statistics in this document are specific to the pinned block range.
+**Limitation:** Re-running the indexer beyond block {{indexed_block_max}} will produce additional rows. All statistics in this document are specific to the pinned block range; the observed event span in this snapshot is {{observed_event_min}} - {{observed_event_max}}.
 
 ---
 

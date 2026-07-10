@@ -2,6 +2,8 @@ import sqlite3
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
 DEFAULT_DB_PATH = "indexer_cache.db"
+PINNED_START_BLOCK = 44427013
+PINNED_END_BLOCK = 47718785
 ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 EMPTY_DELIVERABLE_HASH = "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
 USDC_DIVISOR = Decimal("1000000")
@@ -464,17 +466,25 @@ def get_report_metrics(db_path: str = DEFAULT_DB_PATH) -> dict:
         )
         payment_without_completed = int(cursor.fetchone()[0] or 0)
 
-        overall_min_block = None
-        overall_max_block = None
+        observed_event_min_block = None
+        observed_event_max_block = None
         for table_name in EVENT_TABLES:
             if not _table_exists(cursor, table_name):
                 continue
             cursor.execute(f"SELECT MIN(block_number), MAX(block_number) FROM {table_name}")
             min_block, max_block = cursor.fetchone()
             if min_block is not None:
-                overall_min_block = min_block if overall_min_block is None else min(overall_min_block, min_block)
+                observed_event_min_block = (
+                    min_block
+                    if observed_event_min_block is None
+                    else min(observed_event_min_block, min_block)
+                )
             if max_block is not None:
-                overall_max_block = max_block if overall_max_block is None else max(overall_max_block, max_block)
+                observed_event_max_block = (
+                    max_block
+                    if observed_event_max_block is None
+                    else max(observed_event_max_block, max_block)
+                )
 
         total_payment_units = _sum_amounts(cursor, "SELECT amount FROM PaymentReleased")
         total_usdc_volume = total_payment_units / USDC_DIVISOR if total_payment_units else Decimal(0)
@@ -501,8 +511,12 @@ def get_report_metrics(db_path: str = DEFAULT_DB_PATH) -> dict:
             "alchemy_free_tier_cu": "30M CU/month",
             "alchemy_free_tier_price": "$0",
             "basescan_contract_url": f"https://basescan.org/address/{contract_address}",
-            "indexed_block_min": _format_int(int(overall_min_block or 0)),
-            "indexed_block_max": _format_int(int(overall_max_block or 0)),
+            "indexed_block_min": _format_int(PINNED_START_BLOCK),
+            "indexed_block_max": _format_int(PINNED_END_BLOCK),
+            "indexed_block_min_raw": str(PINNED_START_BLOCK),
+            "indexed_block_max_raw": str(PINNED_END_BLOCK),
+            "observed_event_min": _format_int(int(observed_event_min_block or 0)),
+            "observed_event_max": _format_int(int(observed_event_max_block or 0)),
             "jobcreated_rows": _format_int(event_counts["JobCreated"]),
             "jobfunded_rows": _format_int(event_counts["JobFunded"]),
             "jobsubmitted_rows": _format_int(event_counts["JobSubmitted"]),
@@ -626,8 +640,10 @@ def get_report_metrics(db_path: str = DEFAULT_DB_PATH) -> dict:
                 "completed_without_payment_count": completed_without_payment,
                 "payment_without_completed_count": payment_without_completed,
                 "duplicate_tx_log_pair_count": _get_duplicate_tx_log_pair_count(cursor),
-                "indexed_block_min": int(overall_min_block or 0),
-                "indexed_block_max": int(overall_max_block or 0),
+                "indexed_block_min": PINNED_START_BLOCK,
+                "indexed_block_max": PINNED_END_BLOCK,
+                "observed_event_min": int(observed_event_min_block or 0),
+                "observed_event_max": int(observed_event_max_block or 0),
             },
             "template_values": template_values,
         }

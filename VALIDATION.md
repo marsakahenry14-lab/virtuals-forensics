@@ -7,8 +7,9 @@
 - **Proxy type:** ERC-1967 upgradeable proxy.
 - **Implementation:** `0x8e86FbEf4a4c927561cb6447cEd77ffFbf3B77BC`
 - **Basescan:** https://basescan.org/address/0x238E541BfefD82238730D00a2208E5497F1832E0
-- **Block range:** 44,429,969-47,715,550. Pinned manually via
-  START_BLOCK/END_BLOCK; the observed event span is reported by the indexer integrity check.
+- **Pinned block range:** 44,427,013-47,718,785.
+- **Observed event span:** 44,429,969-47,715,550.
+- Pinned manually via START_BLOCK/END_BLOCK; the observed event span is reported by the indexer integrity check.
 - **ABI source:** Basescan "Contract" tab for the implementation.
 
 ---
@@ -16,7 +17,8 @@
 # VALIDATION — Dataset Integrity & On-Chain Verification
 
 **Contract:** AgenticCommerceV3 · `0x238E541BfefD82238730D00a2208E5497F1832E0`  
-**Block range:** 44,429,969 - 47,715,550
+**Pinned block range:** 44,427,013 - 47,718,785
+**Observed event span:** 44,429,969 - 47,715,550
 
 ---
 
@@ -148,4 +150,5 @@ python generate_report.py
 
 - Contract reference: [0x238E541BfefD82238730D00a2208E5497F1832E0](https://basescan.org/address/0x238E541BfefD82238730D00a2208E5497F1832E0)
 - Chain: Base Mainnet (8453)
-- Indexed block range: 44,429,969 - 47,715,550
+- Indexed block range (pinned): 44,427,013 - 47,718,785
+- Observed event span: 44,429,969 - 47,715,550

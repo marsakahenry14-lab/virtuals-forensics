@@ -5,7 +5,7 @@ running on Base Mainnet.
 
 **Contract:** `0x238E541BfefD82238730D00a2208E5497F1832E0`  
 **Chain:** Base Mainnet (chain id 8453)  
-**Indexed block range:** 44,429,969 - 47,715,550  
+**Indexed range (pinned):** 44,427,013 - 47,718,785; **observed event span:** 44,429,969 - 47,715,550
 **Dataset:** 62,953 `JobCreated` events + full job lifecycle
 
 No LLM inference. No assumptions. Raw on-chain events, SQL queries, verifiable transaction hashes.
@@ -92,8 +92,8 @@ Copy `.env.example` to `.env` and set your RPC URL:
 
 ```env
 BASE_RPC_URL=https://mainnet.base.org
-START_BLOCK=44,429,969
-END_BLOCK=47,715,550
+START_BLOCK=44427013
+END_BLOCK=47718785
 ```
 
 > **Note:** Using a paid RPC endpoint such as Alchemy is strongly recommended.  
@@ -155,7 +155,7 @@ No duplicate `job_id` values. One row per job creation event.
 
 ## Limitations
 
-- **Block range is fixed.** The dataset covers blocks 44,429,969 - 47,715,550. Re-running the indexer today may produce a larger dataset.
+- **Block range is fixed.** The dataset covers pinned blocks 44,427,013 - 47,718,785; observed events in this snapshot span 44,429,969 - 47,715,550.
 - **Token assumption.** `PaymentReleased.amount` is normalized assuming 6 decimals.
 - **Basescan sample.** On-chain verification remains a sample-based process, documented in `VALIDATION.md`.
 - **Intent is unknown.** No observation in this dataset implies intent, fraud, or protocol violation. All statements are empirical.
