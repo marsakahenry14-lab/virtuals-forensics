@@ -39,11 +39,23 @@ def _load_template(template_path: Path) -> str:
 
 
 def _render_template(template_text: str, values: Dict[str, str]) -> str:
-    def replace(match: re.Match[str]) -> str:
-        key = match.group(1)
-        return str(values.get(key, match.group(0)))
+    missing_keys = []
 
-    return PLACEHOLDER_RE.sub(replace, template_text)
+    def replace(match: "re.Match[str]") -> str:
+        key = match.group(1)
+        if key not in values:
+            missing_keys.append(key)
+            return match.group(0)
+        return str(values[key])
+
+    rendered = PLACEHOLDER_RE.sub(replace, template_text)
+    if missing_keys:
+        raise ValueError(
+            "Unresolved placeholders: "
+            + ", ".join(sorted(set(missing_keys)))
+            + ". metrics.py must provide every key used in the template."
+        )
+    return rendered
 
 
 def _write_json(output_path: Path, payload: dict) -> None:
@@ -75,10 +87,6 @@ def main() -> int:
 
     report_metrics = get_report_metrics(str(DB_PATH))
     template_values = dict(report_metrics["template_values"])
-    template_values["basescan_contract_url"] = (
-        f"https://basescan.org/address/{template_values['contract_address']}"
-    )
-
     _write_json(METRICS_OUTPUT_PATH, report_metrics)
     _render_docs(template_values)
     return 0

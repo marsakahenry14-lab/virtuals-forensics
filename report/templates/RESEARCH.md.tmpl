@@ -53,9 +53,9 @@ python generate_report.py
 
 ```sql
 SELECT
-    SUM(CASE WHEN evaluator = '0x0000000000000000000000000000000000000000' THEN 1 ELSE 0 END) AS zero_evaluator_jobs,
-    SUM(CASE WHEN client = evaluator AND evaluator != '0x0000000000000000000000000000000000000000' THEN 1 ELSE 0 END) AS self_evaluator_jobs,
-    SUM(CASE WHEN evaluator != '0x0000000000000000000000000000000000000000' AND client != evaluator THEN 1 ELSE 0 END) AS independent_evaluator_jobs
+    SUM(CASE WHEN LOWER(evaluator) = LOWER('0x0000000000000000000000000000000000000000') THEN 1 ELSE 0 END) AS zero_evaluator_jobs,
+    SUM(CASE WHEN LOWER(client) = LOWER(evaluator) AND LOWER(evaluator) != LOWER('0x0000000000000000000000000000000000000000') THEN 1 ELSE 0 END) AS self_evaluator_jobs,
+    SUM(CASE WHEN LOWER(evaluator) != LOWER('0x0000000000000000000000000000000000000000') AND LOWER(client) != LOWER(evaluator) THEN 1 ELSE 0 END) AS independent_evaluator_jobs
 FROM JobCreated;
 ```
 
@@ -77,8 +77,8 @@ The dataset shows that evaluator trust is not structurally enforced in the contr
 ```sql
 SELECT COUNT(DISTINCT client) AS unique_addresses
 FROM JobCreated
-WHERE client = evaluator
-  AND evaluator != '0x0000000000000000000000000000000000000000';
+WHERE LOWER(client) = LOWER(evaluator)
+  AND LOWER(evaluator) != LOWER('0x0000000000000000000000000000000000000000');
 ```
 
 **Observed:** {{unique_self_evaluators}} unique non-zero addresses appear as both `client` and `evaluator`.
@@ -113,7 +113,7 @@ SELECT
 FROM JobSubmitted s
 LEFT JOIN JobCompleted comp ON s.job_id = comp.job_id
 LEFT JOIN JobExpired exp ON s.job_id = exp.job_id
-WHERE s.deliverable = '{{empty_deliverable_hash}}';
+WHERE LOWER(s.deliverable) = LOWER('{{empty_deliverable_hash}}');
 ```
 
 **Observed:**

@@ -97,9 +97,15 @@ def _get_evaluator_breakdown(cursor: sqlite3.Cursor, cohort_table: str = "") -> 
         cursor.execute(query, params)
         return int(cursor.fetchone()[0] or 0)
 
-    zero_count = count_where("jc.evaluator = ?", (ZERO_ADDRESS,))
-    self_count = count_where("jc.client = jc.evaluator AND jc.evaluator != ?", (ZERO_ADDRESS,))
-    independent_count = count_where("jc.evaluator != ? AND jc.evaluator != jc.client", (ZERO_ADDRESS,))
+    zero_count = count_where("LOWER(jc.evaluator) = ?", (ZERO_ADDRESS.lower(),))
+    self_count = count_where(
+        "LOWER(jc.client) = LOWER(jc.evaluator) AND LOWER(jc.evaluator) != ?",
+        (ZERO_ADDRESS.lower(),),
+    )
+    independent_count = count_where(
+        "LOWER(jc.evaluator) != ? AND LOWER(jc.evaluator) != LOWER(jc.client)",
+        (ZERO_ADDRESS.lower(),),
+    )
 
     return {
         "total_jobs": total_jobs,
@@ -199,9 +205,9 @@ def _get_empty_deliverables_from_cursor(cursor: sqlite3.Cursor) -> dict:
     FROM JobSubmitted s
     LEFT JOIN JobCompleted comp ON s.job_id = comp.job_id
     LEFT JOIN JobExpired exp ON s.job_id = exp.job_id
-    WHERE s.deliverable = ?
+    WHERE LOWER(s.deliverable) = ?
     """
-    cursor.execute(query, (EMPTY_DELIVERABLE_HASH,))
+    cursor.execute(query, (EMPTY_DELIVERABLE_HASH.lower(),))
     row = cursor.fetchone()
 
     if row:
@@ -239,17 +245,17 @@ def _get_evaluator_behavior_from_cursor(cursor: sqlite3.Cursor) -> list:
             COUNT(DISTINCT comp.job_id) + COUNT(DISTINCT rej.job_id) AS total_evaluated,
             COUNT(DISTINCT comp.job_id) AS approved,
             COUNT(DISTINCT rej.job_id) AS rejected,
-            COUNT(DISTINCT CASE WHEN s.deliverable = ? THEN comp.job_id END) AS empty_approved
+            COUNT(DISTINCT CASE WHEN LOWER(s.deliverable) = ? THEN comp.job_id END) AS empty_approved
         FROM JobCreated jc
-        LEFT JOIN JobCompleted comp ON jc.job_id = comp.job_id AND comp.evaluator = jc.evaluator
-        LEFT JOIN JobRejected rej ON jc.job_id = rej.job_id AND rej.rejector = jc.evaluator
+        LEFT JOIN JobCompleted comp ON jc.job_id = comp.job_id AND LOWER(comp.evaluator) = LOWER(jc.evaluator)
+        LEFT JOIN JobRejected rej ON jc.job_id = rej.job_id AND LOWER(rej.rejector) = LOWER(jc.evaluator)
         LEFT JOIN JobSubmitted s ON jc.job_id = s.job_id
         GROUP BY jc.evaluator
         HAVING total_evaluated >= 3
         ORDER BY total_evaluated DESC
         LIMIT 10
         """
-        cursor.execute(query, (EMPTY_DELIVERABLE_HASH,))
+        cursor.execute(query, (EMPTY_DELIVERABLE_HASH.lower(),))
     else:
         query = """
         SELECT
@@ -257,16 +263,16 @@ def _get_evaluator_behavior_from_cursor(cursor: sqlite3.Cursor) -> list:
             COUNT(DISTINCT comp.job_id) AS total_evaluated,
             COUNT(DISTINCT comp.job_id) AS approved,
             0 AS rejected,
-            COUNT(DISTINCT CASE WHEN s.deliverable = ? THEN comp.job_id END) AS empty_approved
+            COUNT(DISTINCT CASE WHEN LOWER(s.deliverable) = ? THEN comp.job_id END) AS empty_approved
         FROM JobCreated jc
-        LEFT JOIN JobCompleted comp ON jc.job_id = comp.job_id AND comp.evaluator = jc.evaluator
+        LEFT JOIN JobCompleted comp ON jc.job_id = comp.job_id AND LOWER(comp.evaluator) = LOWER(jc.evaluator)
         LEFT JOIN JobSubmitted s ON jc.job_id = s.job_id
         GROUP BY jc.evaluator
         HAVING total_evaluated >= 3
         ORDER BY total_evaluated DESC
         LIMIT 10
         """
-        cursor.execute(query, (EMPTY_DELIVERABLE_HASH,))
+        cursor.execute(query, (EMPTY_DELIVERABLE_HASH.lower(),))
 
     result = []
     for evaluator, total_evaluated, approved, rejected, empty_approved in cursor.fetchall():
@@ -304,12 +310,12 @@ def _get_structural_observations_from_cursor(cursor: sqlite3.Cursor) -> dict:
 
     cursor.execute(
         """
-        SELECT COUNT(DISTINCT client), COUNT(*)
+        SELECT COUNT(DISTINCT client), COUNT(DISTINCT job_id)
         FROM JobCreated
-        WHERE client = evaluator
-          AND evaluator != ?
+        WHERE LOWER(client) = LOWER(evaluator)
+          AND LOWER(evaluator) != ?
         """,
-        (ZERO_ADDRESS,),
+        (ZERO_ADDRESS.lower(),),
     )
     unique_self_evaluators, self_eval_jobs = cursor.fetchone() or (0, 0)
 
@@ -323,10 +329,10 @@ def _get_structural_observations_from_cursor(cursor: sqlite3.Cursor) -> dict:
             SELECT pr.amount
             FROM PaymentReleased pr
             JOIN JobCreated jc ON pr.job_id = jc.job_id
-            WHERE jc.client = jc.evaluator
-              AND jc.evaluator != ?
+            WHERE LOWER(jc.client) = LOWER(jc.evaluator)
+              AND LOWER(jc.evaluator) != ?
             """,
-            (ZERO_ADDRESS,),
+            (ZERO_ADDRESS.lower(),),
         )
 
     total_usdc_volume = total_amount / USDC_DIVISOR if total_amount else Decimal(0)
@@ -483,16 +489,18 @@ def get_report_metrics(db_path: str = DEFAULT_DB_PATH) -> dict:
         if top_clients:
             top_two_share_pct = round(sum(client["pct"] for client in top_clients[:2]), 2)
 
+        contract_address = "0x238E541BfefD82238730D00a2208E5497F1832E0"
+
         template_values = {
             "contract_name": "AgenticCommerceV3",
-            "contract_address": "0x238E541BfefD82238730D00a2208E5497F1832E0",
+            "contract_address": contract_address,
             "chain_name": "Base Mainnet",
             "chain_id": "8453",
             "base_public_rpc_url": "https://mainnet.base.org",
             "recommended_rpc_provider": "Alchemy",
             "alchemy_free_tier_cu": "30M CU/month",
             "alchemy_free_tier_price": "$0",
-            "basescan_contract_url": "{{basescan_contract_url}}",
+            "basescan_contract_url": f" `https://basescan.org/address/{contract_address}` ",
             "indexed_block_min": _format_int(int(overall_min_block or 0)),
             "indexed_block_max": _format_int(int(overall_max_block or 0)),
             "jobcreated_rows": _format_int(event_counts["JobCreated"]),
@@ -589,6 +597,18 @@ def get_report_metrics(db_path: str = DEFAULT_DB_PATH) -> dict:
             "lifecycle_submitted_count": _format_int(event_counts["JobSubmitted"]),
             "lifecycle_created_count": _format_int(event_counts["JobCreated"]),
         }
+
+        # INVARIANT: the three evaluator buckets must partition all created jobs.
+        _total = created_breakdown["total_jobs"]
+        _zero = created_breakdown["zero_evaluator_count"]
+        _self = created_breakdown["self_evaluator_nonzero_count"]
+        _indep = created_breakdown["independent_evaluator_count"]
+        if _zero + _self + _indep != _total:
+            raise AssertionError(
+                f"Evaluator breakdown invariant violated: zero({_zero}) + self({_self}) "
+                f"+ independent({_indep}) != total({_total}). Likely NULL evaluator rows "
+                f"or a case-mismatch not covered by LOWER()."
+            )
 
         return {
             "event_counts": event_counts,
