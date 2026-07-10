@@ -1,0 +1,307 @@
+{
+  "completed_breakdown": {
+    "independent_evaluator_count": 3,
+    "independent_evaluator_pct": 0.03,
+    "self_evaluator_nonzero_count": 3058,
+    "self_evaluator_nonzero_pct": 34.52,
+    "total_jobs": 8859,
+    "zero_evaluator_count": 5798,
+    "zero_evaluator_pct": 65.45
+  },
+  "created_breakdown": {
+    "independent_evaluator_count": 10,
+    "independent_evaluator_pct": 0.02,
+    "self_evaluator_nonzero_count": 17299,
+    "self_evaluator_nonzero_pct": 27.48,
+    "total_jobs": 62953,
+    "zero_evaluator_count": 45644,
+    "zero_evaluator_pct": 72.5
+  },
+  "empty_deliverables": {
+    "completed_with_empty": 392,
+    "expired_with_empty": 6,
+    "total_empty_submitted": 398
+  },
+  "evaluator_behavior": [
+    {
+      "approval_rate_pct": 100.0,
+      "approved": 5798,
+      "empty_approved": 0,
+      "evaluator": "0x0000000000000000000000000000000000000000",
+      "rejected": 0,
+      "total_evaluated": 5798
+    },
+    {
+      "approval_rate_pct": 93.12,
+      "approved": 771,
+      "empty_approved": 0,
+      "evaluator": "0x4e7C9Cec0C188C4f38f089E7843d750b7C3FAB46",
+      "rejected": 57,
+      "total_evaluated": 828
+    },
+    {
+      "approval_rate_pct": 28.47,
+      "approved": 197,
+      "empty_approved": 0,
+      "evaluator": "0x6d0B34E3fEe5D3E7ab7B63ADE5DF1E95cCe0189b",
+      "rejected": 495,
+      "total_evaluated": 692
+    },
+    {
+      "approval_rate_pct": 100.0,
+      "approved": 237,
+      "empty_approved": 226,
+      "evaluator": "0xd77443a6D3E071c609AB027D5016c86BEbf4ef69",
+      "rejected": 0,
+      "total_evaluated": 237
+    },
+    {
+      "approval_rate_pct": 100.0,
+      "approved": 215,
+      "empty_approved": 0,
+      "evaluator": "0x3ffcB4e4766217ff6D96f2A2C1EfB09c90F8ca9D",
+      "rejected": 0,
+      "total_evaluated": 215
+    },
+    {
+      "approval_rate_pct": 100.0,
+      "approved": 201,
+      "empty_approved": 0,
+      "evaluator": "0xE09F40114Af6C78788A8003Da127C49C56158584",
+      "rejected": 0,
+      "total_evaluated": 201
+    },
+    {
+      "approval_rate_pct": 100.0,
+      "approved": 182,
+      "empty_approved": 0,
+      "evaluator": "0xE09ACCb3A522c834F3922021C84c4C9F03fAEC5d",
+      "rejected": 0,
+      "total_evaluated": 182
+    },
+    {
+      "approval_rate_pct": 100.0,
+      "approved": 141,
+      "empty_approved": 0,
+      "evaluator": "0x44Cc25D55A4291b92f52062ba023Ca1F14206664",
+      "rejected": 0,
+      "total_evaluated": 141
+    },
+    {
+      "approval_rate_pct": 90.43,
+      "approved": 104,
+      "empty_approved": 104,
+      "evaluator": "0xA37987a62644F9EE60AF51A7FFFAd4C81a4dDCCD",
+      "rejected": 11,
+      "total_evaluated": 115
+    },
+    {
+      "approval_rate_pct": 93.68,
+      "approved": 89,
+      "empty_approved": 22,
+      "evaluator": "0x998FC7D08149aD7aF00EE52c2f8B6677507632A8",
+      "rejected": 6,
+      "total_evaluated": 95
+    }
+  ],
+  "event_counts": {
+    "EvaluatorFeePaid": 2609,
+    "JobCompleted": 8859,
+    "JobCreated": 62953,
+    "JobExpired": 1130,
+    "JobFunded": 10544,
+    "JobPhaseUpdated": 0,
+    "JobRejected": 1411,
+    "JobSubmitted": 9333,
+    "MemoSigned": 0,
+    "NewMemo": 0,
+    "PaymentReleased": 8859
+  },
+  "funded_breakdown": {
+    "independent_evaluator_count": 3,
+    "independent_evaluator_pct": 0.03,
+    "self_evaluator_nonzero_count": 4321,
+    "self_evaluator_nonzero_pct": 40.98,
+    "total_jobs": 10544,
+    "zero_evaluator_count": 6220,
+    "zero_evaluator_pct": 58.99
+  },
+  "funnel": {
+    "JobCompleted": 8859,
+    "JobCreated": 62953,
+    "JobExpired": 1130,
+    "JobFunded": 10544,
+    "JobSubmitted": 9333,
+    "PaymentReleased": 8859
+  },
+  "structural_observations": {
+    "independent_evaluator_jobs": 10,
+    "independent_evaluator_percentage": 0.02,
+    "self_eval_jobs": 17299,
+    "self_eval_usdc_volume": "268.71",
+    "total_usdc_volume": "353.21",
+    "unique_self_evaluators": 212,
+    "zero_evaluator_jobs": 45644,
+    "zero_evaluator_percentage": 72.5
+  },
+  "template_values": {
+    "alchemy_free_tier_cu": "30M CU/month",
+    "alchemy_free_tier_price": "$0",
+    "average_payment_usdc": "0.04",
+    "base_public_rpc_url": "https://mainnet.base.org",
+    "basescan_contract_url": "https://basescan.org/address/0x238E541BfefD82238730D00a2208E5497F1832E0",
+    "chain_id": "8453",
+    "chain_name": "Base Mainnet",
+    "completed_independent_evaluator_count": "3",
+    "completed_independent_evaluator_pct": "0.03",
+    "completed_jobs_total": "8,859",
+    "completed_self_evaluator_nonzero_count": "3,058",
+    "completed_self_evaluator_nonzero_pct": "34.52",
+    "completed_without_payment_count": "0",
+    "completed_zero_evaluator_count": "5,798",
+    "completed_zero_evaluator_pct": "65.45",
+    "contract_address": "0x238E541BfefD82238730D00a2208E5497F1832E0",
+    "contract_name": "AgenticCommerceV3",
+    "distinct_jobcreated_job_ids": "62,953",
+    "duplicate_tx_log_pair_count": "0",
+    "empty_deliverable_hash": "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
+    "empty_deliverables_completed": "392",
+    "empty_deliverables_completed_pct": "98.49",
+    "empty_deliverables_expired": "6",
+    "empty_deliverables_expired_pct": "1.51",
+    "empty_deliverables_total": "398",
+    "evaluatorfeepaid_rows": "2,609",
+    "funded_independent_evaluator_count": "3",
+    "funded_independent_evaluator_pct": "0.03",
+    "funded_jobs_total": "10,544",
+    "funded_self_evaluator_nonzero_count": "4,321",
+    "funded_self_evaluator_nonzero_pct": "40.98",
+    "funded_zero_evaluator_count": "6,220",
+    "funded_zero_evaluator_pct": "58.99",
+    "independent_evaluator_count": "10",
+    "independent_evaluator_pct": "0.02",
+    "indexed_block_max": "47,715,550",
+    "indexed_block_min": "44,429,969",
+    "jobcompleted_rows": "8,859",
+    "jobcreated_rows": "62,953",
+    "jobexpired_rows": "1,130",
+    "jobfunded_rows": "10,544",
+    "jobphaseupdated_rows": "0",
+    "jobrejected_rows": "1,411",
+    "jobsubmitted_rows": "9,333",
+    "lifecycle_completed_count": "8,859",
+    "lifecycle_created_count": "62,953",
+    "lifecycle_submitted_count": "9,333",
+    "memosigned_rows": "0",
+    "newmemo_rows": "0",
+    "payment_without_completed_count": "0",
+    "paymentreleased_rows": "8,859",
+    "recommended_rpc_provider": "Alchemy",
+    "self_eval_usdc_volume": "268.71",
+    "self_evaluator_nonzero_count": "17,299",
+    "self_evaluator_nonzero_pct": "27.48",
+    "top_client_one_address": "0x22F70dAf4426Fe47D2ef4BE54C3ba7653Be01491",
+    "top_client_one_jobs": "43,858",
+    "top_client_one_pct": "69.67",
+    "top_client_two_address": "0x4e7C9Cec0C188C4f38f089E7843d750b7C3FAB46",
+    "top_client_two_jobs": "11,146",
+    "top_client_two_pct": "17.71",
+    "top_pair_client": "0x22F70dAf4426Fe47D2ef4BE54C3ba7653Be01491",
+    "top_pair_completed_count": "1,940",
+    "top_pair_created_count": "21,937",
+    "top_pair_provider": "0xD6A5093213d0e940a887ee5327c60aF7e53B0261",
+    "top_two_clients_pct": "87.38",
+    "total_jobs": "62,953",
+    "total_usdc_volume": "353.21",
+    "unique_self_evaluators": "212",
+    "zero_evaluator_count": "45,644",
+    "zero_evaluator_pct": "72.50"
+  },
+  "top_clients": [
+    {
+      "client": "0x22F70dAf4426Fe47D2ef4BE54C3ba7653Be01491",
+      "pct": 69.67,
+      "total_created": 43858
+    },
+    {
+      "client": "0x4e7C9Cec0C188C4f38f089E7843d750b7C3FAB46",
+      "pct": 17.71,
+      "total_created": 11146
+    },
+    {
+      "client": "0x6d0B34E3fEe5D3E7ab7B63ADE5DF1E95cCe0189b",
+      "pct": 2.26,
+      "total_created": 1421
+    }
+  ],
+  "top_pairs": [
+    {
+      "client": "0x22F70dAf4426Fe47D2ef4BE54C3ba7653Be01491",
+      "completed_count": 1940,
+      "created_count": 21937,
+      "provider": "0xD6A5093213d0e940a887ee5327c60aF7e53B0261"
+    },
+    {
+      "client": "0x22F70dAf4426Fe47D2ef4BE54C3ba7653Be01491",
+      "completed_count": 3010,
+      "created_count": 21921,
+      "provider": "0xDF5e15C898c869340135F39040bdf451a93f9dD8"
+    },
+    {
+      "client": "0x4e7C9Cec0C188C4f38f089E7843d750b7C3FAB46",
+      "completed_count": 771,
+      "created_count": 11146,
+      "provider": "0x3899523d94289A94Afa3B33745bC95c125483041"
+    },
+    {
+      "client": "0x6d0B34E3fEe5D3E7ab7B63ADE5DF1E95cCe0189b",
+      "completed_count": 26,
+      "created_count": 597,
+      "provider": "0xa691EeAd14de1bD93F920649e12c124592089EdA"
+    },
+    {
+      "client": "0xD1BAa920868a66e213383Be798a415EF45E8ceFE",
+      "completed_count": 355,
+      "created_count": 593,
+      "provider": "0xEA0f80AAC331a0aEE486EE67D61F9f4aD7085Ee8"
+    },
+    {
+      "client": "0x6d0B34E3fEe5D3E7ab7B63ADE5DF1E95cCe0189b",
+      "completed_count": 113,
+      "created_count": 446,
+      "provider": "0xA41cDE7183313f521b565fCcf299fDa717AED4EE"
+    },
+    {
+      "client": "0xE09F40114Af6C78788A8003Da127C49C56158584",
+      "completed_count": 201,
+      "created_count": 294,
+      "provider": "0x44Cc25D55A4291b92f52062ba023Ca1F14206664"
+    },
+    {
+      "client": "0xFDCAe47abAe341Ed79b087057b7bF068fCB20107",
+      "completed_count": 0,
+      "created_count": 278,
+      "provider": "0xa691EeAd14de1bD93F920649e12c124592089EdA"
+    },
+    {
+      "client": "0x22A37C576f7C7ed7755a2673b56130B773dC56A6",
+      "completed_count": 46,
+      "created_count": 247,
+      "provider": "0xA9667116B4f4E9f1bae85F93a21B4b8eA45de98f"
+    },
+    {
+      "client": "0x3ffcB4e4766217ff6D96f2A2C1EfB09c90F8ca9D",
+      "completed_count": 215,
+      "created_count": 235,
+      "provider": "0xfCf0b00f8352dD193A671e40940C9a32396adB49"
+    }
+  ],
+  "validation": {
+    "completed_without_payment_count": 0,
+    "distinct_jobcreated_job_ids": 62953,
+    "duplicate_tx_log_pair_count": 0,
+    "indexed_block_max": 47715550,
+    "indexed_block_min": 44429969,
+    "payment_without_completed_count": 0
+  }
+}
