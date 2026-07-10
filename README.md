@@ -1,12 +1,12 @@
 # ACP Mainnet Dataset & Forensic Indexer
 
-Reproducible on-chain dataset for **{{contract_name}}** — the production predecessor of ERC-8183 —  
-running on {{chain_name}}.
+Reproducible on-chain dataset for **AgenticCommerceV3** — the production predecessor of ERC-8183 —  
+running on Base Mainnet.
 
-**Contract:** `{{contract_address}}`  
-**Chain:** {{chain_name}} (chain id {{chain_id}})  
-**Indexed block range:** {{indexed_block_min}} - {{indexed_block_max}}  
-**Dataset:** {{jobcreated_rows}} `JobCreated` events + full job lifecycle
+**Contract:** `0x238E541BfefD82238730D00a2208E5497F1832E0`  
+**Chain:** Base Mainnet (chain id 8453)  
+**Indexed block range:** 44,429,969 - 47,715,550  
+**Dataset:** 62,953 `JobCreated` events + full job lifecycle
 
 No LLM inference. No assumptions. Raw on-chain events, SQL queries, verifiable transaction hashes.
 
@@ -16,7 +16,7 @@ No LLM inference. No assumptions. Raw on-chain events, SQL queries, verifiable t
 
 This repository contains:
 
-1. **`indexer.py`** — a deterministic Python indexer that reads all {{contract_name}} events from {{chain_name}} via `eth_getLogs` and stores them in a local SQLite database.
+1. **`indexer.py`** — a deterministic Python indexer that reads all AgenticCommerceV3 events from Base Mainnet via `eth_getLogs` and stores them in a local SQLite database.
 2. **`metrics.py`** — a set of SQL-based analytical functions that compute structural observations about protocol usage patterns.
 3. **`api.py`** — a FastAPI server exposing the metrics as a JSON endpoint.
 4. **`RESEARCH.md`** — reproducible research documentation with all SQL queries, results, and on-chain verification steps.
@@ -30,12 +30,12 @@ The primary asset is the **reproducible dataset and methodology**, not any indiv
 
 | Table | Rows | Fields |
 |---|---|---|
-| JobCreated | {{jobcreated_rows}} | job_id, client, provider, evaluator, expired_at, hook |
-| JobFunded | {{jobfunded_rows}} | job_id, client, amount |
-| JobSubmitted | {{jobsubmitted_rows}} | job_id, provider, deliverable (bytes32) |
-| JobCompleted | {{jobcompleted_rows}} | job_id, evaluator, reason |
-| PaymentReleased | {{paymentreleased_rows}} | job_id, provider, amount |
-| JobExpired | {{jobexpired_rows}} | job_id |
+| JobCreated | 62,953 | job_id, client, provider, evaluator, expired_at, hook |
+| JobFunded | 10,544 | job_id, client, amount |
+| JobSubmitted | 9,333 | job_id, provider, deliverable (bytes32) |
+| JobCompleted | 8,859 | job_id, evaluator, reason |
+| PaymentReleased | 8,859 | job_id, provider, amount |
+| JobExpired | 1,130 | job_id |
 
 All counts are reproducible by running the indexer against the same block range.
 
@@ -91,14 +91,14 @@ Works on Windows PowerShell, CMD, Linux, and Mac.
 Copy `.env.example` to `.env` and set your RPC URL:
 
 ```env
-BASE_RPC_URL={{base_public_rpc_url}}
-START_BLOCK={{indexed_block_min}}
-END_BLOCK={{indexed_block_max}}
+BASE_RPC_URL=https://mainnet.base.org
+START_BLOCK=44,429,969
+END_BLOCK=47,715,550
 ```
 
-> **Note:** Using a paid RPC endpoint such as {{recommended_rpc_provider}} is strongly recommended.  
+> **Note:** Using a paid RPC endpoint such as Alchemy is strongly recommended.  
 > Public RPC endpoints rate-limit aggressively and may produce incomplete data.  
-> {{recommended_rpc_provider}} free tier reference: {{alchemy_free_tier_cu}} at {{alchemy_free_tier_price}}.
+> Alchemy free tier reference: 30M CU/month at $0.
 
 ---
 
@@ -109,25 +109,25 @@ END_BLOCK={{indexed_block_max}}
 ```json
 {
   "funnel": {
-    "JobCreated": "{{jobcreated_rows}}",
-    "JobFunded": "{{jobfunded_rows}}",
-    "JobSubmitted": "{{jobsubmitted_rows}}",
-    "JobCompleted": "{{jobcompleted_rows}}",
-    "PaymentReleased": "{{paymentreleased_rows}}",
-    "JobExpired": "{{jobexpired_rows}}"
+    "JobCreated": "62,953",
+    "JobFunded": "10,544",
+    "JobSubmitted": "9,333",
+    "JobCompleted": "8,859",
+    "PaymentReleased": "8,859",
+    "JobExpired": "1,130"
   },
   "empty_deliverables": {
-    "total_empty_submitted": "{{empty_deliverables_total}}",
-    "completed_with_empty": "{{empty_deliverables_completed}}",
-    "expired_with_empty": "{{empty_deliverables_expired}}"
+    "total_empty_submitted": "398",
+    "completed_with_empty": "392",
+    "expired_with_empty": "6"
   },
   "structural_observations": {
-    "zero_evaluator_jobs": "{{zero_evaluator_count}}",
-    "zero_evaluator_percentage": "{{zero_evaluator_pct}}",
-    "unique_self_evaluators": "{{unique_self_evaluators}}",
-    "self_eval_jobs": "{{self_evaluator_nonzero_count}}",
-    "total_usdc_volume": "{{total_usdc_volume}}",
-    "self_eval_usdc_volume": "{{self_eval_usdc_volume}}"
+    "zero_evaluator_jobs": "45,644",
+    "zero_evaluator_percentage": "72.50",
+    "unique_self_evaluators": "212",
+    "self_eval_jobs": "17,299",
+    "total_usdc_volume": "353.21",
+    "self_eval_usdc_volume": "268.71"
   }
 }
 ```
@@ -140,13 +140,13 @@ All observations in `RESEARCH.md` are reproducible using:
 
 1. The indexer (`indexer.py`) against the pinned block range.
 2. The SQL queries documented in `RESEARCH.md`.
-3. Manual verification on [Basescan]({{basescan_contract_url}}) using the transaction hashes listed in `VALIDATION.md`.
+3. Manual verification on [Basescan](https://basescan.org/address/0x238E541BfefD82238730D00a2208E5497F1832E0) using the transaction hashes listed in `VALIDATION.md`.
 
 Dataset integrity check:
 
 ```sql
-SELECT COUNT(*) FROM JobCreated;                -- {{jobcreated_rows}}
-SELECT COUNT(DISTINCT job_id) FROM JobCreated;  -- {{distinct_jobcreated_job_ids}}
+SELECT COUNT(*) FROM JobCreated;                -- 62,953
+SELECT COUNT(DISTINCT job_id) FROM JobCreated;  -- 62,953
 ```
 
 No duplicate `job_id` values. One row per job creation event.
@@ -155,7 +155,7 @@ No duplicate `job_id` values. One row per job creation event.
 
 ## Limitations
 
-- **Block range is fixed.** The dataset covers blocks {{indexed_block_min}} - {{indexed_block_max}}. Re-running the indexer today may produce a larger dataset.
+- **Block range is fixed.** The dataset covers blocks 44,429,969 - 47,715,550. Re-running the indexer today may produce a larger dataset.
 - **Token assumption.** `PaymentReleased.amount` is normalized assuming 6 decimals.
 - **Basescan sample.** On-chain verification remains a sample-based process, documented in `VALIDATION.md`.
 - **Intent is unknown.** No observation in this dataset implies intent, fraud, or protocol violation. All statements are empirical.

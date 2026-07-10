@@ -500,7 +500,7 @@ def get_report_metrics(db_path: str = DEFAULT_DB_PATH) -> dict:
             "recommended_rpc_provider": "Alchemy",
             "alchemy_free_tier_cu": "30M CU/month",
             "alchemy_free_tier_price": "$0",
-            "basescan_contract_url": f" `https://basescan.org/address/{contract_address}` ",
+            "basescan_contract_url": f"https://basescan.org/address/{contract_address}",
             "indexed_block_min": _format_int(int(overall_min_block or 0)),
             "indexed_block_max": _format_int(int(overall_max_block or 0)),
             "jobcreated_rows": _format_int(event_counts["JobCreated"]),

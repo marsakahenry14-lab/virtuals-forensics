@@ -1,7 +1,22 @@
+## §0. Contract Address Provenance
+
+**Contract:** `0x238E541BfefD82238730D00a2208E5497F1832E0` (AgenticCommerceV3)
+**Network:** Base Mainnet (chain id 8453)
+**Provenance:** Identified via Basescan contract-creator tracing.
+- **Creator:** Virtuals Protocol deployment (verified on Basescan).
+- **Proxy type:** ERC-1967 upgradeable proxy.
+- **Implementation:** `0x8e86FbEf4a4c927561cb6447cEd77ffFbf3B77BC`
+- **Basescan:** https://basescan.org/address/0x238E541BfefD82238730D00a2208E5497F1832E0
+- **Block range:** 44,429,969-47,715,550. Pinned manually via
+  START_BLOCK/END_BLOCK; the observed event span is reported by the indexer integrity check.
+- **ABI source:** Basescan "Contract" tab for the implementation.
+
+---
+
 # VALIDATION — Dataset Integrity & On-Chain Verification
 
-**Contract:** {{contract_name}} · `{{contract_address}}`  
-**Block range:** {{indexed_block_min}} - {{indexed_block_max}}
+**Contract:** AgenticCommerceV3 · `0x238E541BfefD82238730D00a2208E5497F1832E0`  
+**Block range:** 44,429,969 - 47,715,550
 
 ---
 
@@ -24,20 +39,20 @@ UNION ALL SELECT 'PaymentReleased', COUNT(*) FROM PaymentReleased;
 **Expected report values:**
 
 ```text
-JobCreated       {{jobcreated_rows}}
-JobFunded        {{jobfunded_rows}}
-JobSubmitted     {{jobsubmitted_rows}}
-JobCompleted     {{jobcompleted_rows}}
-JobRejected      {{jobrejected_rows}}
-JobExpired       {{jobexpired_rows}}
-PaymentReleased  {{paymentreleased_rows}}
+JobCreated       62,953
+JobFunded        10,544
+JobSubmitted     9,333
+JobCompleted     8,859
+JobRejected      1,411
+JobExpired       1,130
+PaymentReleased  8,859
 ```
 
 ### 1.2 No duplicate `job_id` values in `JobCreated`
 
 ```sql
-SELECT COUNT(*) FROM JobCreated;                -- {{jobcreated_rows}}
-SELECT COUNT(DISTINCT job_id) FROM JobCreated;  -- {{distinct_jobcreated_job_ids}}
+SELECT COUNT(*) FROM JobCreated;                -- 62,953
+SELECT COUNT(DISTINCT job_id) FROM JobCreated;  -- 62,953
 ```
 
 **Result target:** Counts should match.
@@ -51,13 +66,13 @@ SELECT
     (SELECT COUNT(*) FROM JobCreated) AS created;
 ```
 
-**Expected ordering:** `{{lifecycle_completed_count}} <= {{lifecycle_submitted_count}} <= {{lifecycle_created_count}}`
+**Expected ordering:** `8,859 <= 9,333 <= 62,953`
 
 ### 1.4 PaymentReleased row count matches JobCompleted
 
 ```sql
-SELECT COUNT(*) FROM PaymentReleased;  -- {{paymentreleased_rows}}
-SELECT COUNT(*) FROM JobCompleted;     -- {{jobcompleted_rows}}
+SELECT COUNT(*) FROM PaymentReleased;  -- 8,859
+SELECT COUNT(*) FROM JobCompleted;     -- 8,859
 ```
 
 **Result target:** Counts should match.
@@ -77,8 +92,8 @@ WHERE comp.job_id IS NULL;
 ```
 
 **Observed in generated metrics:**
-- Completed without payment: {{completed_without_payment_count}}
-- Payment without completed: {{payment_without_completed_count}}
+- Completed without payment: 0
+- Payment without completed: 0
 
 ### 1.6 Duplicate event identity check
 
@@ -97,7 +112,7 @@ GROUP BY tx_hash, log_index
 HAVING COUNT(*) > 1;
 ```
 
-**Observed in generated metrics:** {{duplicate_tx_log_pair_count}} duplicate `(tx_hash, log_index)` pairs.
+**Observed in generated metrics:** 0 duplicate `(tx_hash, log_index)` pairs.
 
 ---
 
@@ -110,7 +125,7 @@ SQL queries operate on locally indexed data. Manual verification on Basescan con
 ### Verification procedure
 
 1. Take a `tx_hash` from the local database.
-2. Open [Basescan contract page]({{basescan_contract_url}}) or navigate directly to the transaction page.
+2. Open [Basescan contract page](https://basescan.org/address/0x238E541BfefD82238730D00a2208E5497F1832E0) or navigate directly to the transaction page.
 3. Inspect the transaction logs.
 4. Compare the emitted event fields to the local SQLite rows for the same `job_id`.
 
@@ -131,6 +146,6 @@ python generate_report.py
 
 ## 4. Notes
 
-- Contract reference: [{{contract_address}}]({{basescan_contract_url}})
-- Chain: {{chain_name}} ({{chain_id}})
-- Indexed block range: {{indexed_block_min}} - {{indexed_block_max}}
+- Contract reference: [0x238E541BfefD82238730D00a2208E5497F1832E0](https://basescan.org/address/0x238E541BfefD82238730D00a2208E5497F1832E0)
+- Chain: Base Mainnet (8453)
+- Indexed block range: 44,429,969 - 47,715,550
