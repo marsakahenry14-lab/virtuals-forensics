@@ -184,6 +184,20 @@ tenacity         # retry logic for RPC calls
 
 ---
 
+## Used by
+
+This dataset is the empirical basis for three follow-on pieces:
+
+- [`erc8004-forensics`](https://github.com/marsakahenry14-lab/erc8004-forensics)
+  — the same evaluator-trust question measured on ERC-8004's reputation registry.
+- [`erc8183-evaluator-integrity`](https://github.com/marsakahenry14-lab/erc8183-evaluator-integrity)
+  — an attack pattern and detector for prompt-injection into ERC-8183 LLM evaluators.
+- [`acp-evaluator-independence`](https://github.com/marsakahenry14-lab/acp-evaluator-independence)
+  — an economic control that prices evaluator-independence risk, using the
+  72.5%/27.5%/0.02% split above as its motivating measurement.
+
+---
+
 ## License
 
 MIT — see [LICENSE](./LICENSE).
