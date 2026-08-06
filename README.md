@@ -34,6 +34,7 @@ The primary asset is the **reproducible dataset and methodology**, not any indiv
 | JobFunded | 10,544 | job_id, client, amount |
 | JobSubmitted | 9,333 | job_id, provider, deliverable (bytes32) |
 | JobCompleted | 8,859 | job_id, evaluator, reason |
+| JobRejected | 1,411 | job_id, rejector, reason |
 | PaymentReleased | 8,859 | job_id, provider, amount |
 | JobExpired | 1,130 | job_id |
 
@@ -91,13 +92,13 @@ Works on Windows PowerShell, CMD, Linux, and Mac.
 Copy `.env.example` to `.env` and set your RPC URL:
 
 ```env
-BASE_RPC_URL=https://mainnet.base.org
+BASE_RPC_URL=https://base-mainnet.g.alchemy.com/v2/YOUR_KEY
 START_BLOCK=44427013
 END_BLOCK=47718785
 ```
 
-> **Note:** Using a paid RPC endpoint such as Alchemy is strongly recommended.  
-> Public RPC endpoints rate-limit aggressively and may produce incomplete data.  
+> **Note:** Using a paid RPC endpoint such as Alchemy is strongly recommended.
+> The public endpoint (https://mainnet.base.org) rate-limits aggressively and may produce incomplete data.
 > Alchemy free tier reference: 30M CU/month at $0.
 
 ---

@@ -60,7 +60,3 @@ Agent-commerce and agent-reputation standards (ERC-8004, ERC-8183) delegate "eva
 ## Reproducibility
 
 Indexer, SQL queries, and Basescan verification steps are in the repository. Every figure regenerates from the pinned block range (44,427,013 – 47,718,785). Contract on Basescan: `https://basescan.org/address/0x238E541BfefD82238730D00a2208E5497F1832E0`
-
----
-
-*Optional strongest example — verify before including:* if the single-address pattern (one address approving 226 of 237 empty deliverables) is reproducible, add its SQL to `RESEARCH.md` and cite it here. It is the sharpest single illustration of the finding, but only if it regenerates from the data.

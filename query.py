@@ -2,7 +2,7 @@
 query.py — simple SQL CLI wrapper for indexer_cache.db
 Usage:
   python query.py "SELECT COUNT(*) FROM JobCreated"
-  python query.py  # без аргументов — покажет список таблиц
+  python query.py  # no arguments — lists available tables
 No quoting hell. Works on Windows PowerShell, CMD, Linux, Mac.
 """
 
